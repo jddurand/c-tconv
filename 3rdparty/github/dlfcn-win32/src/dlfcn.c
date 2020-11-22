@@ -4,21 +4,28 @@
  * Copyright (c) 2015 Tiancheng "Timothy" Gu
  * Copyright (c) 2019 Pali Rohár <pali.rohar@gmail.com>
  *
- * dlfcn-win32 is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- * dlfcn-win32 is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with dlfcn-win32; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
  */
 
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0501
+#endif
 #ifdef _DEBUG
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
@@ -369,24 +376,10 @@ void *dlsym( void *handle, const char *name )
          * The next object is the one found upon the application of a load
          * order symbol resolution algorithm. To get caller function of dlsym()
          * use _ReturnAddress() intrinsic. To get HMODULE of caller function
-         * use undocumented hack from https://stackoverflow.com/a/2396380
-         * The HMODULE of a DLL is the same value as the module's base address.
+         * use standard GetModuleHandleExA() function.
          */
-        MEMORY_BASIC_INFORMATION info;
-        size_t sLen;
-        sLen = VirtualQueryEx( hCurrentProc, _ReturnAddress(), &info, sizeof( info ) );
-        if( sLen != sizeof( info ) )
-        {
-            if( sLen != 0 )
-                SetLastError( ERROR_INVALID_PARAMETER );
+        if( !GetModuleHandleExA( GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCSTR) _ReturnAddress( ), &hCaller ) )
             goto end;
-        }
-        hCaller = (HMODULE) info.AllocationBase;
-        if( !hCaller )
-        {
-            SetLastError( ERROR_INVALID_PARAMETER );
-            goto end;
-        }
     }
 
     if( handle != RTLD_NEXT )
