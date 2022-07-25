@@ -24,7 +24,7 @@
 #ifdef FALSE
 #define ICU_FALSE FALSE
 #else
-#define ICU_FALSE 1
+#define ICU_FALSE 0
 #endif
 
 #define TCONV_ICU_IGNORE   "//IGNORE"
