@@ -326,6 +326,12 @@ MYPACKAGEDEPENDENCY (genericLogger "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/github/
 MYPACKAGEMAN("include/README.pod"       "TCONV"     "3" "${TCONV_VERSION}")
 MYPACKAGEMAN("include/tconv/README.pod" "TCONV_EXT" "3" "${TCONV_VERSION}")
 
+##########
+# Export #
+##########
+MYPACKAGECMAKEEXPORT()
+MYPACKAGEPKGCONFIGEXPORT()
+
 #############
 # Packaging #
 #############
