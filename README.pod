@@ -15,4 +15,4 @@ Built-in character conversion engines are: iconv (even on Windows, via win-iconv
 
 # SEE ALSO
 
-[iconv(3)](http://man.he.net/man3/iconv), [cchardet](https://pypi.python.org/pypi/cchardet/), [win-iconv](https://github.com/win-iconv/win-iconv), [ICU](http://icu-project.org/)
+L<iconv(3)|http://man.he.net/man3/iconv>, L<cchardet|https://pypi.python.org/pypi/cchardet/>, L<win-iconv|https://github.com/win-iconv/win-iconv/>, L<ICU|http://icu-project.org/>
