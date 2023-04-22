@@ -259,10 +259,13 @@ MYPACKAGELIBRARY(
   ${libtconv_src})
 
 LIST (LENGTH libtconv_inc libtconv_inc_length)
-FOREACH (_target tconv tconv_static)
+FOREACH (_target tconv_objs tconv_static_objs)
   IF (${libtconv_inc_length} GREATER 0)
     TARGET_INCLUDE_DIRECTORIES(${_target} PRIVATE ${libtconv_inc})
   ENDIF ()
+ENDFOREACH ()
+
+FOREACH (_target tconv tconv_static tconv_objs tconv_static_objs)
   IF (ICU_FOUND)
     TARGET_LINK_LIBRARIES(${_target} PUBLIC ICU::ICU)
   ENDIF ()
