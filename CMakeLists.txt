@@ -321,7 +321,7 @@ MYPACKAGECHECK(tconvExample)
 ################
 # Dependencies #
 ################
-MYPACKAGEDEPENDENCY (genericLogger "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/github/genericLogger" LIBS STATIC LOCAL)
+MYPACKAGEDEPENDENCY (genericLogger "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/github/genericLogger" LIBS LOCAL)
 
 ###########
 # Install #
