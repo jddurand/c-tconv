@@ -312,16 +312,16 @@ FOREACH (_target tconvExample tconvExample_static)
   ENDIF ()
 ENDFOREACH ()
 
+################
+# Dependencies #
+################
+MYPACKAGEDEPENDENCY (genericLogger "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/github/genericLogger" LIBS LOCAL)
+
 #########
 # Tests #
 #########
 MYPACKAGECHECK(tconvExe -t UTF-16 -o tconv.tconv-UTF-16.c "${PROJECT_SOURCE_DIR}/src/tconv.c")
 MYPACKAGECHECK(tconvExample)
-
-################
-# Dependencies #
-################
-MYPACKAGEDEPENDENCY (genericLogger "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/github/genericLogger" LIBS LOCAL)
 
 ###########
 # Install #
