@@ -123,6 +123,7 @@ test_script:
 on_failure:
   - ps: if(Test-Path C:\projects\%APPVEYOR_PROJECT_NAME%\CMakeFiles\CMakeOutput.log) { cat C:\projects\%APPVEYOR_PROJECT_NAME%\CMakeFiles\CMakeOutput.log }
   - ps: if(Test-Path C:\projects\%APPVEYOR_PROJECT_NAME%\CMakeFiles\CMakeError.log) { cat C:\projects\%APPVEYOR_PROJECT_NAME%\CMakeFiles\CMakeError.log }
+  - ps: if(Test-Path C:\projects\%APPVEYOR_PROJECT_NAME%\Testing\CMakeFiles\LastTest.log) { cat C:\projects\%APPVEYOR_PROJECT_NAME%\Testing\CMakeFiles\LastTest.log }
 
 artifacts:
   - path: "*.exe"
