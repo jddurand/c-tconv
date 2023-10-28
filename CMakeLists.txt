@@ -277,6 +277,11 @@ FOREACH (_target tconv tconv_static tconv_objs tconv_static_objs)
   ENDIF ()
 ENDFOREACH ()
 
+################
+# Dependencies #
+################
+MYPACKAGEDEPENDENCY (genericLogger "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/github/genericLogger" LIBS LOCAL)
+
 ###############
 # Executables #
 ###############
@@ -311,11 +316,6 @@ FOREACH (_target tconvExample tconvExample_static)
     TARGET_LINK_LIBRARIES(${_target} PUBLIC Crun)
   ENDIF ()
 ENDFOREACH ()
-
-################
-# Dependencies #
-################
-MYPACKAGEDEPENDENCY (genericLogger "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/github/genericLogger" LIBS LOCAL)
 
 #########
 # Tests #
