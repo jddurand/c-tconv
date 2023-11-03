@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED (VERSION 3.15.0 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED (VERSION 3.26.0 FATAL_ERROR)
 PROJECT(tconv VERSION 1.0.84 LANGUAGES C CXX)
 IF (NOT MYPACKAGEBOOTSTRAP_DONE)
   INCLUDE ("3rdparty/github/cmake-utils/cmake/MyPackageBootstrap.cmake")
@@ -259,13 +259,13 @@ MYPACKAGELIBRARY(
   ${libtconv_src})
 
 LIST (LENGTH libtconv_inc libtconv_inc_length)
-FOREACH (_target tconv_objs tconv_static_objs)
+FOREACH (_target tconv_shared tconv_static)
   IF (${libtconv_inc_length} GREATER 0)
     TARGET_INCLUDE_DIRECTORIES(${_target} PRIVATE ${libtconv_inc})
   ENDIF ()
 ENDFOREACH ()
 
-FOREACH (_target tconv tconv_static tconv_objs tconv_static_objs)
+FOREACH (_target tconv_shared tconv_static)
   IF (ICU_FOUND)
     TARGET_LINK_LIBRARIES(${_target} PUBLIC ICU::ICU)
   ENDIF ()
@@ -280,7 +280,7 @@ ENDFOREACH ()
 ################
 # Dependencies #
 ################
-MYPACKAGEDEPENDENCY (genericLogger "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/github/genericLogger" LIBS LOCAL)
+MYPACKAGEDEPENDENCY (genericLogger "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/github/genericLogger" LOCAL LIBS EXES PUBLIC SHARED_LIB) # runtime dependency
 
 ###############
 # Executables #
