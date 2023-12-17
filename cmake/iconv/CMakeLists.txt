@@ -263,7 +263,7 @@ else()
   set(HAVE_WCRTOMB 0)
   set(HAVE_MBRTOWC 0)
   set(USE_MBSTATE_T 0)
-  set(BROKEN_WCHAR_H 0) # Not use if NOT USE_MBSTATE_T
+  set(BROKEN_WCHAR_H 0) # Not used if NOT USE_MBSTATE_T
 endif()
 #
 # Generate iconv.h
@@ -285,9 +285,7 @@ endif()
 #
 # Create library
 #
-cmake_helpers_library(libiconv
-  SOURCES libcharset/lib/localcharset.c lib/relocatable.c lib/iconv.c
-)
+cmake_helpers_library(libiconv SOURCES libcharset/lib/localcharset.c lib/relocatable.c lib/iconv.c)
 #
 # Package
 #
