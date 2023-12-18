@@ -71,6 +71,10 @@ include(CheckIncludeFile)
 include(CheckSymbolExists)
 include(TestBigEndian)
 #
+# DLL_VARIABLE: nothing - we replace all export hacks with CMake's libiconv_EXPORT
+#
+set(DLL_VARIABLE)
+#
 # #ifdef/#ifndef ICONV_CONST
 #
 if(WITH_ICONV_CONST)
@@ -213,25 +217,34 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/include/internal)
 # iconv.h
 # =======
 #
-# Read iconv.h.in and replace:
+# iconv.h.build.in contains unfortunately a bloc that would be hard to remove with a true patch.
+# iconv.h.in is almost perfect: we just replace extern by extern [letter] by extern libiconv_EXPORT [a-ZA-Z_]
+#
+# In this file we replace:
 #
 # #define _LIBICONV_H
 # by
 # #define _LIBICONV_H
 # include <libiconv/export.h>
 #
-# @DLL_VARIABLE@
+# extern [a-ZA-Z_]
 # by
-# libiconv_EXPORT
+# extern libiconv_EXPORT [a-ZA-Z_]
 #
 # @EILSEQ@
 # by
 # ENOENT
 #
+# @DLL_VARIABLE@
+# by
+# libiconv_EXPORT
+#
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/include/iconv.h.in _iconv_h_in)
 string(REPLACE "#define _LIBICONV_H" "#define _LIBICONV_H\n#include <libiconv/export.h>\n" _iconv_h_in "${_iconv_h_in}")
-string(REPLACE "@DLL_VARIABLE@" "libiconv_EXPORT" _iconv_h_in "${_iconv_h_in}")
+string(REGEX REPLACE "\nextern[ \t]+([a-zA-Z_])" "\nextern libiconv_EXPORT \\1" _iconv_h_in "${_iconv_h_in}")
+string(REPLACE "LIBICONV_DLL_EXPORTED" "libiconv_EXPORT" _iconv_h_in "${_iconv_h_in}")
 string(REPLACE "@EILSEQ@" "ENOENT" _iconv_h_in "${_iconv_h_in}")
+string(REPLACE "@DLL_VARIABLE@" "libiconv_EXPORT" _iconv_h_in "${_iconv_h_in}")
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/include/iconv.h.in.cmake "${_iconv_h_in}")
 #
 # Variables that will be replaced:
