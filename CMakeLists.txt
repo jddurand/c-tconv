@@ -1,356 +1,247 @@
-CMAKE_MINIMUM_REQUIRED (VERSION 3.26.0 FATAL_ERROR)
-PROJECT(tconv VERSION 1.0.85 LANGUAGES C CXX)
-IF (NOT MYPACKAGEBOOTSTRAP_DONE)
-  INCLUDE ("3rdparty/github/cmake-utils/cmake/MyPackageBootstrap.cmake")
-ENDIF ()
-MYPACKAGESTART ()
-
-####################
-# Specific options #
-####################
-OPTION(TCONV_USE_ICU   "Enable ICU plugin if found" ON)
-OPTION(TCONV_USE_ICONV "Enable ICONV plugin plugin" ON)
-
-###########
-# Library #
-###########
-SET (libtconv_src src/tconv.c src/tconv/charset/tconv_charset_cchardet.c)
-SET (libtconv_inc)
-
-SET (TCONV_ICONV_VERSION 1.16)
-
-IF (TCONV_USE_ICONV)
-  # ------------------------------------
-  # iconv sources: libiconv-${TCONV_ICONV_VERSION} builtin
-  # ------------------------------------
-  MESSAGE (STATUS "Unpacking libiconv")
-  EXECUTE_PROCESS(
-    COMMAND "${CMAKE_COMMAND}" -E tar xzf ${PROJECT_SOURCE_DIR}/3rdparty/tar/libiconv-${TCONV_ICONV_VERSION}.tar.gz
-    WORKING_DIRECTORY "${3RDPARTY_OUTPUT_PATH}"
-    )
-  #
-  # iconv uses config.h, we are using tconv_config.h, so there is no clash luckily
-  #
-  FILE (WRITE
-    ${3RDPARTY_OUTPUT_PATH}/libiconv-${TCONV_ICONV_VERSION}/include/config.h
-"
-/* Generated file */
-/* localcharset.c will play itself with WIN32_LEAN_AND_MEAN... */
-#undef WIN32_LEAN_AND_MEAN
-"
-  )
-  FUNCTION (CREATE_ICONV_H src dst)
-    SET (DLL_VARIABLE "") # Just to be sure
-    SET (EILSEQ 134679) # Fallback value if any
-    SET (ICONV_CONST "")
-    SET (USE_MBSTATE_T "0")
-    SET (HAVE_WCHAR_T "0")
-    MESSAGE (STATUS "Configuring ${dst}")
-    CONFIGURE_FILE (${src} ${dst})
-  ENDFUNCTION ()
-  FUNCTION (CREATE_LOCALCHARSET_H src dst)
-    MESSAGE (STATUS "Configuring ${dst}")
-    CONFIGURE_FILE (${src} ${dst})
-  ENDFUNCTION ()
-
-  CREATE_ICONV_H(${3RDPARTY_OUTPUT_PATH}/libiconv-${TCONV_ICONV_VERSION}/include/iconv.h.in ${3RDPARTY_OUTPUT_PATH}/libiconv-${TCONV_ICONV_VERSION}/include/iconv.h @ONLY)
-  CREATE_LOCALCHARSET_H(${3RDPARTY_OUTPUT_PATH}/libiconv-${TCONV_ICONV_VERSION}/libcharset/include/localcharset.h.in ${3RDPARTY_OUTPUT_PATH}/libiconv-${TCONV_ICONV_VERSION}/libcharset/include/localcharset.h @ONLY)
-  INCLUDE (CheckCSourceCompiles)
-  CHECK_C_SOURCE_COMPILES("
-  #include <stdlib.h>
-  #include <langinfo.h>
-  int main(int ac, char **av)
-  {
-    char *cs = nl_langinfo(CODESET);
-    exit(0);
-  }"
-    HAVE_LANGINFO_CODESET)
-
-  INCLUDE ( CheckSymbolExists )
-  CHECK_SYMBOL_EXISTS ( getc_unlocked "stdio.h" HAVE_DECL_GETC_UNLOCKED )
-  SET (ENABLE_EXTRA TRUE)
-
-  INCLUDE (TestBigEndian)
-  TEST_BIG_ENDIAN(IS_BIG_ENDIAN)
-  IF (NOT IS_BIG_ENDIAN)
-    SET (WORDS_LITTLEENDIAN TRUE)
-  ENDIF ()
-
-  LIST (APPEND libtconv_iconv_src
-    ${3RDPARTY_OUTPUT_PATH}/libiconv-${TCONV_ICONV_VERSION}/libcharset/lib/localcharset.c
-    ${3RDPARTY_OUTPUT_PATH}/libiconv-${TCONV_ICONV_VERSION}/lib/relocatable.c
-    ${3RDPARTY_OUTPUT_PATH}/libiconv-${TCONV_ICONV_VERSION}/lib/iconv.c
-    )
-  FOREACH (_iconv_src ${libtconv_iconv_src})
-    SET_PROPERTY(
-      SOURCE ${_iconv_src}
-      PROPERTY COMPILE_FLAGS
-      " -I${3RDPARTY_OUTPUT_PATH}/libiconv-${TCONV_ICONV_VERSION}/include -I${3RDPARTY_OUTPUT_PATH}/libiconv-${TCONV_ICONV_VERSION}/libcharset/include"
-      )
-    #
-    # Remove the const thingy
-    #
-    SET_PROPERTY(
-      SOURCE ${_iconv_src}
-      APPEND
-      PROPERTY COMPILE_DEFINITIONS
-      ICONV_CONST=
-      )
-    SET_PROPERTY(
-      SOURCE ${_iconv_src}
-      APPEND
-      PROPERTY COMPILE_DEFINITIONS
-      LIBDIR=""
-      )
-    SET_PROPERTY(
-      SOURCE ${_iconv_src}
-      APPEND
-      PROPERTY COMPILE_DEFINITIONS
-      HAVE_WORKING_O_NOFOLLOW=0
-      )
-    IF (WORDS_LITTLEENDIAN)
-      SET_PROPERTY(
-        SOURCE ${_iconv_src}
-        APPEND
-        PROPERTY COMPILE_DEFINITIONS
-        WORDS_LITTLEENDIAN=1
-        )
-    ENDIF ()
-    IF (HAVE_DECL_GETC_UNLOCKED)
-      SET_PROPERTY(
-        SOURCE ${_iconv_src}
-        APPEND
-        PROPERTY COMPILE_DEFINITIONS
-        HAVE_DECL_GETC_UNLOCKED=1
-        )
-    ENDIF ()
-    IF (HAVE_LANGINFO_CODESET)
-      SET_PROPERTY(
-        SOURCE ${_iconv_src}
-        APPEND
-        PROPERTY COMPILE_DEFINITIONS
-        HAVE_LANGINFO_CODESET=1
-        )
-    ENDIF ()
-    #
-    # Flags that are always turned on
-    #
-    FOREACH (_have ENABLE_EXTRA)
-      IF (${${_have}})
-        SET_PROPERTY(
-	  SOURCE ${_iconv_src}
-	  APPEND
-	  PROPERTY COMPILE_DEFINITIONS
-	  ${_have}=1
-	  )
-      ENDIF ()
-    ENDFOREACH ()
-  ENDFOREACH ()
-
-  LIST (APPEND libtconv_src ${libtconv_iconv_src})
-ENDIF ()
-
-# ----------------
-# ccharset sources
-# ----------------
-MESSAGE (STATUS "Unpacking cchardet")
-EXECUTE_PROCESS(
-  COMMAND "${CMAKE_COMMAND}" -E tar xzf ${PROJECT_SOURCE_DIR}/3rdparty/tar/cchardet-1.0.0.tar.gz
-  WORKING_DIRECTORY "${3RDPARTY_OUTPUT_PATH}"
-  )
 #
-# nspr-emu mess revisit
-# We will need common includes and sizes now - so let's call the macro doing that
+# Multi-config generator, e.g. Visual Studio on Windows:
 #
-MYPACKAGECHECKCOMMONINCLUDEFILES()
-MYPACKAGECHECKCOMMONSIZES()
-MESSAGE(STATUS "Suppress directory cchardet-1.0.0/src/ext/libcharsetdetect/nspr-emu")
-EXECUTE_PROCESS(
-  COMMAND "${CMAKE_COMMAND}" -E remove_directory ${3RDPARTY_OUTPUT_PATH}/cchardet-1.0.0/src/ext/libcharsetdetect/nspr-emu
+# cmake -S c-tconv -B c-tconv-build
+# cmake --build c-tconv-build --config RelWithDebInfo
+# ctest --test-dir c-tconv-build -C RelWithDebInfo
+# Windows:
+#   cmake --install c-tconv-build --config RelWithDebInfo --prefix %cd%/c-tconv-install
+# Others:
+#   cmake --install c-tconv-build --config RelWithDebInfo --prefix `pwd`/c-tconv-install
+# cmake --build c-tconv-build --config RelWithDebInfo --target package
+#
+# Single-config generator, e.g. NMake Makefiles on Windows, Unix Makefiles on Linxu:
+#
+# cmake -S c-tconv -B c-tconv-build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+# cmake --build c-tconv-build
+# ctest --test-dir c-tconv-build
+# Windows:
+#   cmake --install c-tconv-build --prefix %cd%/c-tconv-install
+# Others:
+#   cmake --install c-tconv-build --prefix `pwd`/c-tconv-install
+# cmake --build c-tconv-build --target package
+#
+# Local tests done with: cmake -S c-tconv -B c-tconv-build -DCMAKE_HELPERS_DEBUG=OFF -DICU_ROOT=C:\icu4c-74_2-Win64-MSVC2019
+#
+cmake_minimum_required(VERSION 3.26.0 FATAL_ERROR)
+project(tconv VERSION 1.0.85 LANGUAGES C CXX)
+#
+# Specific options
+#
+option(TCONV_USE_ICU   "Enable ICU plugin if found" ON)
+option(TCONV_USE_ICONV "Enable ICONV plugin plugin" ON)
+#
+# Get library helper
+#
+include(FetchContent)
+FetchContent_Declare(cmake-helpers GIT_REPOSITORY https://github.com/jddurand/cmake-helpers.git GIT_SHALLOW TRUE)
+FetchContent_MakeAvailable(cmake-helpers)
+#
+# Dependencies
+#
+# iconv
+#
+set(libtconv_src src/tconv.c src/tconv/charset/tconv_charset_cchardet.c)
+set(libtconv_depends)
+set(libtconv_find_dependencies)
+if(TCONV_USE_ICONV)
+  set(iconv_url https://ftp.gnu.org/gnu/libiconv/libiconv-1.17.tar.gz)
+  cmake_helpers_depend(iconv
+    EXTERNALPROJECT_ADD_ARGS
+      URL https://ftp.gnu.org/gnu/libiconv/libiconv-1.17.tar.gz
+      PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/cmake/iconv/CMakeLists.txt .
+            COMMAND ${CMAKE_COMMAND} -E rm include/export.h # This file has nothing to do here -;
+    FIND FALSE # This is how we can force a rebuild and a local install
+    FIND_PACKAGE_ARGS REQUIRED CONFIG
   )
-MESSAGE(STATUS "Generate directory cchardet-1.0.0/src/ext/libcharsetdetect/nspr-emu")
-EXECUTE_PROCESS(
-  COMMAND "${CMAKE_COMMAND}" -E make_directory ${3RDPARTY_OUTPUT_PATH}/cchardet-1.0.0/src/ext/libcharsetdetect/nspr-emu
-  )
-MESSAGE(STATUS "Copying file cchardet-1.0.0/src/ext/libcharsetdetect/nspr-emu/nsDebug.h")
-EXECUTE_PROCESS(
-  COMMAND "${CMAKE_COMMAND}" -E copy ${CMAKE_CURRENT_SOURCE_DIR}/include/nsDebug.h.in ${3RDPARTY_OUTPUT_PATH}/cchardet-1.0.0/src/ext/libcharsetdetect/nspr-emu/nsDebug.h
-  )
-MESSAGE(STATUS "Copying file cchardet-1.0.0/src/ext/libcharsetdetect/nspr-emu/prmem.h")
-EXECUTE_PROCESS(
-  COMMAND "${CMAKE_COMMAND}" -E copy ${CMAKE_CURRENT_SOURCE_DIR}/include/prmem.h.in ${3RDPARTY_OUTPUT_PATH}/cchardet-1.0.0/src/ext/libcharsetdetect/nspr-emu/prmem.h
-  )
-MESSAGE(STATUS "Suppress file cchardet-1.0.0/src/ext/libcharsetdetect/nscore.h")
-EXECUTE_PROCESS(
-  COMMAND "${CMAKE_COMMAND}" -E remove -f ${3RDPARTY_OUTPUT_PATH}/cchardet-1.0.0/src/ext/libcharsetdetect/nscore.h
-  )
-MESSAGE(STATUS "Generate file cchardet-1.0.0/src/ext/libcharsetdetect/nscore.h")
-CONFIGURE_FILE(
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/nscore.h.in
-  ${3RDPARTY_OUTPUT_PATH}/cchardet-1.0.0/src/ext/libcharsetdetect/nscore.h
-  )
-FILE (GLOB ccharset_src
-  ${3RDPARTY_OUTPUT_PATH}/cchardet-1.0.0/src/ext/libcharsetdetect/mozilla/extensions/universalchardet/src/base/*.cpp
-  ${3RDPARTY_OUTPUT_PATH}/cchardet-1.0.0/src/ext/libcharsetdetect/charsetdetect.cpp
-  )
-LIST (APPEND libtconv_src ${ccharset_src})
-LIST (APPEND libtconv_inc
-    ${3RDPARTY_OUTPUT_PATH}/cchardet-1.0.0/src/ext/libcharsetdetect/mozilla/extensions/universalchardet/src/base
-    ${3RDPARTY_OUTPUT_PATH}/cchardet-1.0.0/src/ext/libcharsetdetect/nspr-emu
-    ${3RDPARTY_OUTPUT_PATH}/cchardet-1.0.0/src/ext/libcharsetdetect
-  )
-
-# ---------------
-# portable dlopen
-# ---------------
-IF (WIN32 AND NOT CYGWIN)
-  EXECUTE_PROCESS(
-    COMMAND "${CMAKE_COMMAND}" -E copy_directory "${PROJECT_SOURCE_DIR}/3rdparty/github/dlfcn-win32" "${3RDPARTY_OUTPUT_PATH}/dlfcn-win32"
-    WORKING_DIRECTORY "${3RDPARTY_OUTPUT_PATH}"
-    )
-  SET (dlfcn_src "${3RDPARTY_OUTPUT_PATH}/dlfcn-win32/src/dlfcn.c")
-  LIST (APPEND libtconv_src ${dlfcn_src})
-  LIST (APPEND libtconv_inc ${3RDPARTY_OUTPUT_PATH}/dlfcn-win32/src)
-  SET (DLFCNWIN32_FOUND TRUE)
-ELSE ()
-  SET (DLFCNWIN32_FOUND FALSE)
-ENDIF ()
-
-###################
-# Default Plugins #
-###################
-
-# ---
+  set(TCONV_HAVE_ICONV 1)
+  set(ICONV_SECOND_ARGUMENT_IS_CONST FALSE)
+  set(ICONV_CAN_TRANSLIT TRUE)
+  set(ICONV_CAN_IGNORE TRUE)
+  list(APPEND libtconv_src src/tconv/convert/tconv_convert_iconv.c)
+  list(APPEND libtconv_find_dependencies "libiconv REQUIRED CONFIG")
+  list(APPEND libtconv_depends PUBLIC libiconv::libiconv)
+endif()
+#
 # ICU
-# ---
-IF (NOT TCONV_USE_ICU)
-  MESSAGE (STATUS "ICU plugin is disabled")
-  SET (ICU_FOUND FALSE)
-ELSE ()
-  FIND_PACKAGE (ICU COMPONENTS uc i18n)
-ENDIF ()
-IF (ICU_FOUND)
-  SET (TCONV_HAVE_ICU 1)
-  SET (icu_src src/tconv/charset/tconv_charset_ICU.c src/tconv/convert/tconv_convert_ICU.c)
-  LIST (APPEND libtconv_src ${icu_src})
-ENDIF ()
-
-# -----
-# ICONV
-# -----
-IF (NOT TCONV_USE_ICONV)
-  MESSAGE (STATUS "ICONV plugin is disabled")
-  SET (ICONV_FOUND FALSE)
-ELSE ()
-  SET (ICONV_FOUND TRUE)
-ENDIF ()
-IF (ICONV_FOUND)
-  SET (TCONV_HAVE_ICONV 1)
-  SET (ICONV_SECOND_ARGUMENT_IS_CONST FALSE)
-  SET (ICONV_CAN_TRANSLIT TRUE)
-  SET (ICONV_CAN_IGNORE TRUE)
-  LIST (APPEND libtconv_src src/tconv/convert/tconv_convert_iconv.c)
-  LIST (APPEND libtconv_inc ${3RDPARTY_OUTPUT_PATH}/libiconv-${TCONV_ICONV_VERSION}/include)
-ENDIF ()
-
-MYPACKAGELIBRARY(
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/tconv_config.h.in
-  ${INCLUDE_OUTPUT_PATH}/tconv_config.h
-  ${libtconv_src})
-
-LIST (LENGTH libtconv_inc libtconv_inc_length)
-FOREACH (_target tconv_shared tconv_static)
-  IF (${libtconv_inc_length} GREATER 0)
-    TARGET_INCLUDE_DIRECTORIES(${_target} PRIVATE ${libtconv_inc})
-  ENDIF ()
-ENDFOREACH ()
-
-FOREACH (_target tconv_shared tconv_static)
-  IF (ICU_FOUND)
-    TARGET_LINK_LIBRARIES(${_target} PUBLIC ICU::ICU)
-  ENDIF ()
-  IF (NOT ("${CMAKE_DL_LIBS}" STREQUAL ""))
-    TARGET_LINK_LIBRARIES(${_target} PUBLIC ${CMAKE_DL_LIBS})
-  ENDIF ()
-  IF (DLFCNWIN32_FOUND)
-    TARGET_LINK_LIBRARIES(${_target} PUBLIC "psapi")
-  ENDIF ()
-ENDFOREACH ()
-
-################
-# Dependencies #
-################
-MYPACKAGEDEPENDENCY (genericLogger "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/github/genericLogger" LOCAL LIBS EXES PUBLIC SHARED_LIB) # runtime dependency
-
-###############
-# Executables #
-###############
-
-# --------
-# optparse
-# --------
-EXECUTE_PROCESS(
-  COMMAND "${CMAKE_COMMAND}" -E copy_directory "${PROJECT_SOURCE_DIR}/3rdparty/github/optparse" "${3RDPARTY_OUTPUT_PATH}/optparse"
-  WORKING_DIRECTORY "${3RDPARTY_OUTPUT_PATH}"
+#
+if(TCONV_USE_ICU)
+  set(TCONV_HAVE_ICU 1)
+  list(APPEND libtconv_src src/tconv/charset/tconv_charset_ICU.c src/tconv/convert/tconv_convert_ICU.c)
+  list(APPEND libtconv_find_dependencies "ICU REQUIRED COMPONENTS uc i18n")
+  list(APPEND libtconv_depends PUBLIC ICU::uc)
+  list(APPEND libtconv_depends PUBLIC ICU::i18n)
+endif()
+#
+# Portable dlopen for Win32
+#
+if(WIN32 AND NOT CYGWIN)
+  set(dlfcn_win32_git https://github.com/dlfcn-win32/dlfcn-win32.git)
+  cmake_helpers_depend(dlfcn-win32
+    EXTERNALPROJECT_ADD_ARGS
+      GIT_REPOSITORY ${dlfcn_win32_git}
+      GIT_SHALLOW TRUE
+      CMAKE_ARGS -DBUILD_SHARED_LIBS=ON
+    FIND FALSE # This is how we can force a rebuild and a local install
+    FIND_PACKAGE_ARGS REQUIRED
   )
-MYPACKAGEEXECUTABLE(tconvExe bin/tconv.c)
-MYPACKAGEADDEXECUTABLESTOTESTS(tconvExe)
-FOREACH (_target tconvExe tconvExe_static)
-  TARGET_COMPILE_DEFINITIONS(${_target} PRIVATE -DOPTPARSE_IMPLEMENTATION -DOPTPARSE_API=static -DTCONV_VERSION="${${PROJECT_NAME}_VERSION}")
-  TARGET_INCLUDE_DIRECTORIES(${_target} PRIVATE ${3RDPARTY_OUTPUT_PATH}/optparse)
-  IF (${_target} STREQUAL "tconvExe")
-    SET_TARGET_PROPERTIES(${_target} PROPERTIES OUTPUT_NAME tconv)
-  ELSE ()
-    SET_TARGET_PROPERTIES(${_target} PROPERTIES OUTPUT_NAME tconv_static)
-  ENDIF ()
-  IF (CMAKE_C_COMPILER_ID STREQUAL SunPro)
-    TARGET_LINK_LIBRARIES(${_target} PUBLIC Crun)
-  ENDIF ()
-ENDFOREACH ()
-
-MYPACKAGETESTEXECUTABLE(tconvExample test/example.c)
-FOREACH (_target tconvExample tconvExample_static)
-  TARGET_COMPILE_DEFINITIONS(${_target} PRIVATE -DOPTPARSE_IMPLEMENTATION -DOPTPARSE_API=static)
-  TARGET_INCLUDE_DIRECTORIES(${_target} PRIVATE ${3RDPARTY_OUTPUT_PATH}/optparse)
-  IF (CMAKE_C_COMPILER_ID STREQUAL SunPro)
-    TARGET_LINK_LIBRARIES(${_target} PUBLIC Crun)
-  ENDIF ()
-ENDFOREACH ()
-
-#########
-# Tests #
-#########
-MYPACKAGECHECK(tconvExe -t UTF-16 -o tconv.tconv-UTF-16.c "${PROJECT_SOURCE_DIR}/src/tconv.c")
-MYPACKAGECHECK(tconvExample)
-
-###########
-# Install #
-###########
-MYPACKAGEMAN("include/README.pod"       "TCONV"     "3" "${TCONV_VERSION}")
-MYPACKAGEMAN("include/tconv/README.pod" "TCONV_EXT" "3" "${TCONV_VERSION}")
-
-##########
-# Export #
-##########
-MYPACKAGECMAKEEXPORT()
-MYPACKAGEPKGCONFIGEXPORT()
-
-#############
-# Packaging #
-#############
-MYPACKAGEPACK ("" "Portable Iconv-like interface")
-
-###########
-# Codecov #
-###########
-SET (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/3rdparty/github/CMake-codecov/cmake")
-FIND_PACKAGE(codecov)
-FOREACH (_target tconv tconv_static tconvExe tconvExe_static tconvExample tconvExample_static)
-  add_coverage(${_target})
-ENDFOREACH ()
-coverage_evaluate()
-
-#########
-# Setup #
-#########
-MYPACKAGEPRINTSETUP()
+  list(APPEND libtconv_find_dependencies "dlfcn-win32 REQUIRED CONFIG")
+  list(APPEND libtconv_depends PUBLIC dlfcn-win32::dl)
+  list(APPEND libtconv_depends PUBLIC psapi)
+else()
+  if(CMAKE_DL_LIBS)
+    list(APPEND libtconv_depends PUBLIC ${CMAKE_DL_LIBS})
+  else()
+    message(WARNING "No library containing dlopen/dlclose()")
+  endif()
+endif()
+#
+# Generic logger
+#
+set(genericLogger_git https://github.com/jddurand/c-genericLogger.git)
+cmake_helpers_depend(genericLogger
+  EXTERNALPROJECT_ADD_ARGS
+    GIT_REPOSITORY ${genericLogger_git}
+    GIT_SHALLOW TRUE
+  FIND_PACKAGE_ARGS REQUIRED CONFIG
+)
+list(APPEND libtconv_find_dependencies "genericLogger REQUIRED CONFIG")
+list(APPEND libtconv_depends PUBLIC genericLogger::genericLogger)
+#
+# ccharset sources
+#
+set(cchardet_tarball ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/tar/cchardet-1.0.0.tar.gz)
+set(cchardet_workdir ${CMAKE_CURRENT_BINARY_DIR}/cchardet-1.0.0)
+if(NOT EXISTS ${cchardet_workdir})
+  message(STATUS "Unpacking ${cchardet_tarball}")
+  execute_process(
+    COMMAND ${CMAKE_COMMAND} -E tar xzf ${cchardet_tarball}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+  #
+  # nspr-emu mess revisit
+  # We will need common includes and sizes now - so let's call the macro doing that
+  #
+  message(STATUS "Suppress directory ${cchardet_workdir}/src/ext/libcharsetdetect/nspr-emu")
+  execute_process(COMMAND ${CMAKE_COMMAND} -E remove_directory ${cchardet_workdir}/src/ext/libcharsetdetect/nspr-emu)
+  message(STATUS "Generate directory ${cchardet_workdir}/src/ext/libcharsetdetect/nspr-emu")
+  execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${cchardet_workdir}/src/ext/libcharsetdetect/nspr-emu)
+  message(STATUS "Copying file ${CMAKE_CURRENT_SOURCE_DIR}/include/nsDebug.h.in to ${cchardet_workdir}/src/ext/libcharsetdetect/nspr-emu/nsDebug.h")
+  execute_process(COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/include/nsDebug.h.in ${cchardet_workdir}/src/ext/libcharsetdetect/nspr-emu/nsDebug.h)
+  message(STATUS "Copying file file ${CMAKE_CURRENT_SOURCE_DIR}/include/prmem.h.in to ${cchardet_workdir}/src/ext/libcharsetdetect/nspr-emu/prmem.h")
+  execute_process(COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/include/prmem.h.in ${cchardet_workdir}/src/ext/libcharsetdetect/nspr-emu/prmem.h)
+  message(STATUS "Suppress file ${cchardet_workdir}/src/ext/libcharsetdetect/nscore.h")
+  execute_process(COMMAND ${CMAKE_COMMAND} -E remove -f ${cchardet_workdir}/src/ext/libcharsetdetect/nscore.h)
+  message(STATUS "Generating file ${cchardet_workdir}/src/ext/libcharsetdetect/nscore.h using ${CMAKE_CURRENT_SOURCE_DIR}/include/nscore.h.in")
+  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/nscore.h.in ${cchardet_workdir}/src/ext/libcharsetdetect/nscore.h)
+endif()
+file(GLOB ccharset_src
+  ${cchardet_workdir}/src/ext/libcharsetdetect/mozilla/extensions/universalchardet/src/base/*.cpp
+  ${cchardet_workdir}/src/ext/libcharsetdetect/charsetdetect.cpp
+)
+list(APPEND libtconv_src ${ccharset_src})
+set(ccharset_inc
+  ${cchardet_workdir}/src/ext/libcharsetdetect/mozilla/extensions/universalchardet/src/base
+  ${cchardet_workdir}/src/ext/libcharsetdetect/nspr-emu
+  ${cchardet_workdir}/src/ext/libcharsetdetect
+)
+#
+# optparse
+#
+set(optparse_git https://github.com/skeeto/optparse.git)
+cmake_helpers_depend(optparse
+  EXTERNALPROJECT_ADD_ARGS
+    GIT_REPOSITORY ${optparse_git}
+    GIT_SHALLOW TRUE
+  #
+  # Setting FIND and INSTALL to FALSE guaranteed that we download the source and do nothing else
+  #
+  FIND FALSE
+  INSTALL FALSE
+  #
+  # ../. which means that these variables will always be set
+  #
+  SOURCE_DIR_OUTVAR optparse_source_dir
+  BINARY_DIR_OUTVAR optparse_binary_dir
+)
+#
+# Create library
+#
+cmake_helpers_library(tconv
+  CONFIG_ARGS       include/tconv_config.h.in include/tconv_config.h
+  PODS_AUTO         FALSE # We have several files with the same name README.pod, c.f. below
+  SOURCES           ${libtconv_src}
+  FIND_DEPENDENCIES ${libtconv_find_dependencies}
+  DEPENDS           ${libtconv_depends}
+  TARGETS_OUTVAR    targets
+)
+#
+# Add ccharset_inc to tconv targets
+#
+foreach(target IN LISTS targets)
+  cmake_helpers_call(target_include_directories ${target} PRIVATE ${ccharset_inc})
+endforeach()
+#
+# With MSVC, it emits a lof of warnings we can ignore
+#
+if(MSVC)
+  foreach(target IN LISTS targets)
+    cmake_helpers_call(target_compile_options ${target} PRIVATE /wd4838) # warning C4838: conversion from 'int' to 'const PRInt16' requires a narrowing conversion
+    cmake_helpers_call(target_compile_options ${target} PRIVATE /wd4067) # warning C4067: unexpected tokens following preprocessor directive - expected a newline
+    cmake_helpers_call(target_compile_options ${target} PRIVATE /wd4068) # warning C4068: unknown pragma 'GCC'
+  endforeach()
+endif()
+#
+# PODs
+#
+cmake_helpers_pod(INPUT ${CMAKE_CURRENT_SOURCE_DIR}/include/README.pod NAME tconv SECTION 3)
+cmake_helpers_pod(INPUT ${CMAKE_CURRENT_SOURCE_DIR}/include/tconv/README.pod NAME tconv_ext SECTION 3)
+#
+# EXEs
+#
+cmake_helpers_exe(tconv
+  TEST FALSE
+  INSTALL TRUE
+  SOURCES bin/tconv.c
+  TARGETS_OUTVAR targets
+)
+foreach(_target IN LISTS targets)
+  cmake_helpers_call(target_compile_definitions ${_target} PRIVATE -DOPTPARSE_IMPLEMENTATION -DOPTPARSE_API=static)
+  cmake_helpers_call(target_include_directories ${_target} PRIVATE ${optparse_source_dir})
+  #
+  # We know this will produce two targets: tconv_shared_exe and tconv_static_exe
+  #
+  if(_target STREQUAL "tconv_shared_exe")
+    set_target_properties(${_target} PROPERTIES OUTPUT_NAME tconv)
+  elseif(_target STREQUAL "tconv_static_exe")
+    set_target_properties(${_target} PROPERTIES OUTPUT_NAME tconv_static)
+  else()
+    message(WARNING "Unexpected target ${_target}")
+  endif()
+  #
+  # Specific to SunOs
+  #
+  if(CMAKE_C_COMPILER_ID STREQUAL SunPro)
+    target_link_libraries(${_target} PUBLIC Crun)
+  endif()
+endforeach()
+#
+# Tests
+#
+include(CTest)
+cmake_helpers_exe(tconvExample
+  TEST TRUE
+  INSTALL FALSE
+  SOURCES test/example.c
+  TARGETS_OUTVAR targets
+)
+foreach(_target IN LISTS targets)
+  cmake_helpers_call(target_compile_definitions ${_target} PRIVATE -DOPTPARSE_IMPLEMENTATION -DOPTPARSE_API=static)
+  cmake_helpers_call(target_include_directories ${_target} PRIVATE ${optparse_source_dir})
+  #
+  # Specific to SunOs
+  #
+  if(CMAKE_C_COMPILER_ID STREQUAL SunPro)
+    target_link_libraries(${_target} PUBLIC Crun)
+  endif()
+endforeach()
