@@ -245,3 +245,7 @@ foreach(_target IN LISTS targets)
     target_link_libraries(${_target} PUBLIC Crun)
   endif()
 endforeach()
+#
+# Package
+#
+cmake_helpers_package()
