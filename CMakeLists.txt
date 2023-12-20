@@ -66,11 +66,16 @@ endif()
 # ICU
 #
 if(TCONV_USE_ICU)
-  set(TCONV_HAVE_ICU 1)
-  list(APPEND libtconv_src src/tconv/charset/tconv_charset_ICU.c src/tconv/convert/tconv_convert_ICU.c)
-  list(APPEND libtconv_find_dependencies "ICU REQUIRED COMPONENTS uc i18n")
-  list(APPEND libtconv_depends PUBLIC ICU::uc)
-  list(APPEND libtconv_depends PUBLIC ICU::i18n)
+  find_package(ICU COMPONENTS uc i18n)
+  if(ICU_FOUND)
+    set(TCONV_HAVE_ICU 1)
+    list(APPEND libtconv_src src/tconv/charset/tconv_charset_ICU.c src/tconv/convert/tconv_convert_ICU.c)
+    list(APPEND libtconv_find_dependencies "ICU REQUIRED COMPONENTS uc i18n")
+    list(APPEND libtconv_depends PUBLIC ICU::uc)
+    list(APPEND libtconv_depends PUBLIC ICU::i18n)
+  else()
+    message(WARNING "Option USE_ICU is ON but ICU is not found")
+  endif()
 endif()
 #
 # Portable dlopen for Win32
