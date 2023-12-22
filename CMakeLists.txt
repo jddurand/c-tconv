@@ -78,6 +78,15 @@ if(TCONV_USE_ICU)
   endif()
 endif()
 #
+# Paths: special case of ICU - we know that runtime paths on Windows for FindIcu.cmake are not available on Windows.
+# Fortunately, ICU is always delivered with uconv executable, and all DLLs are in the same directory.
+#
+set(_test_environment)
+if(WIN32 AND TCONV_HAVE_ICU AND ICU_UCONV_EXECUTABLE)
+  cmake_helpers_call(cmake_path GET ICU_UCONV_EXECUTABLE PARENT_PATH _parent_path)
+  list(APPEND _test_environment ${_parent_path})
+endif()
+#
 # Portable dlopen for Win32
 #
 if(WIN32 AND NOT CYGWIN)
@@ -205,12 +214,14 @@ cmake_helpers_pod(INPUT ${CMAKE_CURRENT_SOURCE_DIR}/include/tconv/README.pod NAM
 # EXEs
 #
 cmake_helpers_exe(tconv
-  TEST FALSE
-  INSTALL TRUE
-  SOURCES bin/tconv.c
-  TARGETS_OUTVAR targets
+  SOURCES        bin/tconv.c
+  INSTALL        TRUE
+  TEST           TRUE
+  TEST_ARGS      -t UTF-16 -o tconv.tconv-UTF-16.c "${CMAKE_CURRENT_SOURCE_DIR}/src/tconv.c"
+  TARGETS_OUTVAR tconv_targets
+  ENVIRONMENT    ${_test_environment}
 )
-foreach(_target IN LISTS targets)
+foreach(_target IN LISTS tconv_targets)
   cmake_helpers_call(target_compile_definitions ${_target} PRIVATE -DOPTPARSE_IMPLEMENTATION -DOPTPARSE_API=static)
   cmake_helpers_call(target_include_directories ${_target} PRIVATE ${optparse_source_dir})
   #
@@ -235,12 +246,13 @@ endforeach()
 #
 include(CTest)
 cmake_helpers_exe(tconvExample
-  TEST TRUE
-  INSTALL FALSE
-  SOURCES test/example.c
-  TARGETS_OUTVAR targets
+  SOURCES        test/example.c
+  INSTALL        FALSE
+  TEST           TRUE
+  TARGETS_OUTVAR example_targets
+  ENVIRONMENT    ${_test_environment}
 )
-foreach(_target IN LISTS targets)
+foreach(_target IN LISTS example_targets)
   cmake_helpers_call(target_compile_definitions ${_target} PRIVATE -DOPTPARSE_IMPLEMENTATION -DOPTPARSE_API=static)
   cmake_helpers_call(target_include_directories ${_target} PRIVATE ${optparse_source_dir})
   #
