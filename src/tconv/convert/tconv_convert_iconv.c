@@ -8,7 +8,7 @@
 /* iconv interface is a direct proxy to iconv */
 
 #include "tconv/convert/iconv.h"
-#include "tconv_config.h"
+#include "tconv/internal/config.h"
 
 typedef struct tconv_convert_iconv_context {
   iconv_t cv;

@@ -13,7 +13,7 @@
 #include <unicode/ustring.h>
 
 #include "tconv/convert/ICU.h"
-#include "tconv_config.h"
+#include "tconv/internal/config.h"
 
 /* ICU-21267 */
 #ifdef TRUE

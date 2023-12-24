@@ -43,8 +43,8 @@ print "Generating config for tconv version $version\n";
 # ------------------------
 # Write configuration file
 # ------------------------
-my $config_h_in = File::Spec->catfile('include', 'tconv_config.h.in');
-my $config_h    = File::Spec->catfile('output', 'include', 'tconv_config.h');
+my $config_h_in = File::Spec->catfile('include', 'tconv', 'internal', 'config.h.in');
+my $config_h    = File::Spec->catfile('output', 'include', 'tconv', 'internal', 'config.h');
 make_path(dirname($config_h));
 
 my $ac = Config::AutoConf::INI->new(logfile => 'config.log');
@@ -107,7 +107,7 @@ INLINE_SOURCE
     }
 }
 $ac->check;
-write_tconv_config($version, $config_h_in, $config_h);
+write_tconv_internal_config($version, $config_h_in, $config_h);
 
 # -------------
 # Fake export.h
@@ -412,7 +412,7 @@ sub get_version {
     return join('.', @rc)
 }
 
-sub write_tconv_config {
+sub write_tconv_internal_config {
     my ($version, $input, $output) = @_;
 
     make_path(dirname($output));
@@ -424,8 +424,8 @@ sub write_tconv_config {
 
     open($fh, '>', $output) || die "Cannot open $output, $!";
     print $fh <<CONFIG;
-#ifndef TCONV_CONFIG_WRAPPER_H
-#define TCONV_CONFIG_WRAPPER_H
+#ifndef TCONV_INTERNAL_CONFIG_WRAPPER_H
+#define TCONV_INTERNAL_CONFIG_WRAPPER_H
 
 #include <tconv/config_autoconf.h>
 
@@ -435,7 +435,7 @@ sub write_tconv_config {
 
 $source
 
-#endif /* TCONV_CONFIG_WRAPPER_H */
+#endif /* TCONV_INTERNAL_CONFIG_WRAPPER_H */
 CONFIG
     close($fh) || warn "Cannot close $output, $!";
 }
@@ -460,7 +460,7 @@ sub write_nscore {
 
 $source
 
-#endif /* TCONV_CONFIG_WRAPPER_H */
+#endif /* NSCORE_WRAPPER_H */
 NSCORE
     close($fh) || warn "Cannot close $output, $!";
 }

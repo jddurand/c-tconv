@@ -182,7 +182,7 @@ cmake_helpers_depend(optparse
 # Create library
 #
 cmake_helpers_library(tconv
-  CONFIG_ARGS       include/tconv_config.h.in include/tconv_config.h
+  CONFIG_ARGS       include/tconv/internal/config.h.in include/tconv/internal/config.h
   PODS_AUTO         FALSE # We have several files with the same name README.pod, c.f. below
   SOURCES           ${libtconv_src}
   FIND_DEPENDENCIES ${libtconv_find_dependencies}

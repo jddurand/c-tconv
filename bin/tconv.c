@@ -17,7 +17,7 @@
 #else
 #  include <io.h>
 #endif
-#include "tconv_config.h"
+#include "tconv/internal/config.h"
 
 #ifndef EXIT_FAILURE
 #  define EXIT_FAILURE 1

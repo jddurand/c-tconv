@@ -5,7 +5,7 @@
 #include "unicode/ucsdet.h"
 #include "tconv/charset/ICU.h"
 /* Because this is a built-in, it can take advantage of TCONV_TRACE macro */
-#include "tconv_config.h"
+#include "tconv/internal/config.h"
 
 static tconv_charset_ICU_option_t tconv_charset_ICU_option_default = {
   10

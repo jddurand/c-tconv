@@ -5,7 +5,7 @@
 #include <genericLogger.h>
 #include <stdarg.h>
 #include "tconv.h"
-#include "tconv_config.h"
+#include "tconv/internal/config.h"
 
 /* Maximum size for last error. */
 #ifndef TCONV_ERROR_SIZE

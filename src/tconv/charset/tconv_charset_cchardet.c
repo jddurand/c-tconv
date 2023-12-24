@@ -5,7 +5,7 @@
 #include "charsetdetect.h"
 #include "tconv/charset/cchardet.h"
 /* Because this is a built-in, it can take advantage of TCONV_TRACE macro */
-#include "tconv_config.h"
+#include "tconv/internal/config.h"
 
 static tconv_charset_cchardet_option_t tconv_charset_cchardet_option_default = {
   0.4f
