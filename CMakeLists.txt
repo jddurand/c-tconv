@@ -28,8 +28,9 @@ project(tconv VERSION 1.0.86 LANGUAGES C CXX)
 #
 # Specific options
 #
-option(TCONV_USE_ICU   "Enable ICU plugin if found" ON)
-option(TCONV_USE_ICONV "Enable ICONV plugin plugin" ON)
+option(TCONV_USE_ICU    "Enable ICU plugin if found" ON)
+option(TCONV_USE_ICONV  "Enable ICONV plugin plugin" ON)
+option(TCONV_ALL_IN_ONE "Embed all dependencies in a single library, except for ICU" OFF)
 #
 # Get library helper
 #
@@ -43,24 +44,45 @@ FetchContent_MakeAvailable(cmake-helpers)
 #
 set(libtconv_src src/tconv.c src/tconv/charset/tconv_charset_cchardet.c)
 set(libtconv_depends)
+set(libtconv_depends_ext)
 set(libtconv_find_dependencies)
 if(TCONV_USE_ICONV)
-  set(iconv_url https://ftp.gnu.org/gnu/libiconv/libiconv-1.17.tar.gz)
-  cmake_helpers_depend(iconv
-    EXTERNALPROJECT_ADD_ARGS
-      URL https://ftp.gnu.org/gnu/libiconv/libiconv-1.17.tar.gz
-      PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/cmake/iconv/CMakeLists.txt .
-            COMMAND ${CMAKE_COMMAND} -E rm include/export.h # This file has nothing to do here -;
-    FIND FALSE # This is how we can force a rebuild and a local install
-    FIND_PACKAGE_ARGS REQUIRED CONFIG
-  )
-  set(TCONV_HAVE_ICONV 1)
-  set(ICONV_SECOND_ARGUMENT_IS_CONST FALSE)
-  set(ICONV_CAN_TRANSLIT TRUE)
-  set(ICONV_CAN_IGNORE TRUE)
-  list(APPEND libtconv_src src/tconv/convert/tconv_convert_iconv.c)
-  list(APPEND libtconv_find_dependencies "libiconv REQUIRED CONFIG")
-  list(APPEND libtconv_depends PUBLIC libiconv::libiconv)
+  set(libiconv_url https://ftp.gnu.org/gnu/libiconv/libiconv-1.17.tar.gz)
+  if(TCONV_ALL_IN_ONE)
+    #
+    # We will include iconv static objects in tconv library
+    #
+    cmake_helpers_depend(libiconv
+      EXTERNALPROJECT_ADD_ARGS
+        URL https://ftp.gnu.org/gnu/libiconv/libiconv-1.17.tar.gz
+        PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/cmake/iconv/CMakeLists.txt .
+              COMMAND ${CMAKE_COMMAND} -E rm include/export.h # This file has nothing to do here -;
+        FIND FALSE
+        CONFIGURE FALSE
+        BUILD FALSE
+        INSTALL FALSE
+        SOURCE_DIR_OUTVAR libiconv_source_dir
+        BINARY_DIR_OUTVAR libiconv_binary_dir
+      )
+      add_subdirectory(${libiconv_source_dir} ${libiconv_binary_dir} EXCLUDE_FROM_ALL)
+      list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE libiconv_static_iface)
+  else()
+    cmake_helpers_depend(libiconv
+      EXTERNALPROJECT_ADD_ARGS
+        URL https://ftp.gnu.org/gnu/libiconv/libiconv-1.17.tar.gz
+        PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/cmake/iconv/CMakeLists.txt .
+              COMMAND ${CMAKE_COMMAND} -E rm include/export.h # This file has nothing to do here -;
+        FIND FALSE # This is how we can force a rebuild and a local install
+        FIND_PACKAGE_ARGS REQUIRED CONFIG
+      )
+      list(APPEND libtconv_find_dependencies "libiconv REQUIRED CONFIG")
+      list(APPEND libtconv_depends PUBLIC libiconv::libiconv)
+    endif()
+    set(TCONV_HAVE_ICONV 1)
+    set(ICONV_SECOND_ARGUMENT_IS_CONST FALSE)
+    set(ICONV_CAN_TRANSLIT TRUE)
+    set(ICONV_CAN_IGNORE TRUE)
+    list(APPEND libtconv_src src/tconv/convert/tconv_convert_iconv.c)
 endif()
 #
 # ICU
@@ -83,7 +105,7 @@ endif()
 #
 set(_test_environment)
 if(WIN32 AND TCONV_HAVE_ICU AND ICU_UCONV_EXECUTABLE)
-  cmake_helpers_call(cmake_path GET ICU_UCONV_EXECUTABLE PARENT_PATH _parent_path)
+  cmake_path(GET ICU_UCONV_EXECUTABLE PARENT_PATH _parent_path)
   list(APPEND _test_environment ${_parent_path})
 endif()
 #
@@ -91,16 +113,44 @@ endif()
 #
 if(WIN32 AND NOT CYGWIN)
   set(dlfcn_win32_git https://github.com/dlfcn-win32/dlfcn-win32.git)
-  cmake_helpers_depend(dlfcn-win32
-    EXTERNALPROJECT_ADD_ARGS
-      GIT_REPOSITORY ${dlfcn_win32_git}
-      GIT_SHALLOW TRUE
+  if(TCONV_ALL_IN_ONE)
+    cmake_helpers_depend(dlfcn-win32
+      EXTERNALPROJECT_ADD_ARGS
+        GIT_REPOSITORY ${dlfcn_win32_git}
+	GIT_SHALLOW TRUE
+      FIND FALSE
+      CONFIGURE FALSE
+      BUILD FALSE
+      INSTALL FALSE
+      SOURCE_DIR_OUTVAR dlfcn_win32_source_dir
+      BINARY_DIR_OUTVAR dlfcn_win32_binary_dir
+    )
+    block()
+      set(BUILD_SHARED_LIBS OFF)
+      add_subdirectory(${dlfcn_win32_source_dir} ${dlfcn_win32_binary_dir} EXCLUDE_FROM_ALL)
+      #
+      # This is not our CMakeLists.txt, fortunately it is very small and we know
+      # how to include the objects directly
+      #
+      # Make an interface out of dl
+      #
+      add_library(dl_iface INTERFACE)
+      target_link_libraries(dl_iface INTERFACE dl $<TARGET_OBJECTS:dl>)
+      list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE dl_iface)
+    endblock()
+    list(APPEND libtconv_depends_ext PRIVATE TARGET_OBJECTS dl)
+  else()
+    cmake_helpers_depend(dlfcn-win32
+      EXTERNALPROJECT_ADD_ARGS
+        GIT_REPOSITORY ${dlfcn_win32_git}
+	GIT_SHALLOW TRUE
       CMAKE_ARGS -DBUILD_SHARED_LIBS=ON
-    FIND FALSE # This is how we can force a rebuild and a local install
-    FIND_PACKAGE_ARGS REQUIRED
-  )
-  list(APPEND libtconv_find_dependencies "dlfcn-win32 REQUIRED CONFIG")
-  list(APPEND libtconv_depends PUBLIC dlfcn-win32::dl)
+      FIND FALSE # This is how we can force a rebuild and a local install
+      FIND_PACKAGE_ARGS REQUIRED
+    )
+    list(APPEND libtconv_find_dependencies "dlfcn-win32 REQUIRED CONFIG")
+    list(APPEND libtconv_depends PUBLIC dlfcn-win32::dl)
+  endif()
   list(APPEND libtconv_depends PUBLIC psapi)
 else()
   if(CMAKE_DL_LIBS)
@@ -113,14 +163,30 @@ endif()
 # Generic logger
 #
 set(genericLogger_git https://github.com/jddurand/c-genericLogger.git)
-cmake_helpers_depend(genericLogger
-  EXTERNALPROJECT_ADD_ARGS
-    GIT_REPOSITORY ${genericLogger_git}
-    GIT_SHALLOW TRUE
-  FIND_PACKAGE_ARGS REQUIRED CONFIG
-)
-list(APPEND libtconv_find_dependencies "genericLogger REQUIRED CONFIG")
-list(APPEND libtconv_depends PUBLIC genericLogger::genericLogger)
+if(TCONV_ALL_IN_ONE)
+  cmake_helpers_depend(genericLogger
+    EXTERNALPROJECT_ADD_ARGS
+      GIT_REPOSITORY ${genericLogger_git}
+      GIT_SHALLOW TRUE
+    FIND FALSE
+    CONFIGURE FALSE
+    BUILD FALSE
+    INSTALL FALSE
+    SOURCE_DIR_OUTVAR genericLogger_source_dir
+    BINARY_DIR_OUTVAR genericLogger_binary_dir
+  )
+  add_subdirectory(${genericLogger_source_dir} ${genericLogger_binary_dir} EXCLUDE_FROM_ALL)
+  list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE genericLogger_static_iface)
+else()
+  cmake_helpers_depend(genericLogger
+    EXTERNALPROJECT_ADD_ARGS
+      GIT_REPOSITORY ${genericLogger_git}
+      GIT_SHALLOW TRUE
+    FIND_PACKAGE_ARGS REQUIRED CONFIG
+  )
+  list(APPEND libtconv_find_dependencies "genericLogger REQUIRED CONFIG")
+  list(APPEND libtconv_depends PUBLIC genericLogger::genericLogger)
+endif()
 #
 # ccharset sources
 #
@@ -187,22 +253,31 @@ cmake_helpers_library(tconv
   SOURCES           ${libtconv_src}
   FIND_DEPENDENCIES ${libtconv_find_dependencies}
   DEPENDS           ${libtconv_depends}
+  DEPENDS_EXT       ${libtconv_depends_ext}
   TARGETS_OUTVAR    targets
 )
 #
 # Add ccharset_inc to tconv targets
 #
 foreach(target IN LISTS targets)
-  cmake_helpers_call(target_include_directories ${target} PRIVATE ${ccharset_inc})
+  target_include_directories(${target} PRIVATE ${ccharset_inc})
 endforeach()
+#
+# If TCONV_ALL_IN_ONE make sure dlfcn-win32 source is in the include path
+#
+if(TCONV_ALL_IN_ONE)
+  foreach(target IN LISTS targets)
+    target_include_directories(${target} PRIVATE ${dlfcn_win32_source_dir}/src)
+  endforeach()
+endif()
 #
 # With MSVC, it emits a lof of warnings we can ignore
 #
 if(MSVC)
   foreach(target IN LISTS targets)
-    cmake_helpers_call(target_compile_options ${target} PRIVATE /wd4838) # warning C4838: conversion from 'int' to 'const PRInt16' requires a narrowing conversion
-    cmake_helpers_call(target_compile_options ${target} PRIVATE /wd4067) # warning C4067: unexpected tokens following preprocessor directive - expected a newline
-    cmake_helpers_call(target_compile_options ${target} PRIVATE /wd4068) # warning C4068: unknown pragma 'GCC'
+    target_compile_options(${target} PRIVATE /wd4838) # warning C4838: conversion from 'int' to 'const PRInt16' requires a narrowing conversion
+    target_compile_options(${target} PRIVATE /wd4067) # warning C4067: unexpected tokens following preprocessor directive - expected a newline
+    target_compile_options(${target} PRIVATE /wd4068) # warning C4068: unknown pragma 'GCC'
   endforeach()
 endif()
 #
@@ -222,8 +297,8 @@ cmake_helpers_exe(tconv
   ENVIRONMENT    ${_test_environment}
 )
 foreach(_target IN LISTS tconv_targets)
-  cmake_helpers_call(target_compile_definitions ${_target} PRIVATE -DOPTPARSE_IMPLEMENTATION -DOPTPARSE_API=static)
-  cmake_helpers_call(target_include_directories ${_target} PRIVATE ${optparse_source_dir})
+  target_compile_definitions(${_target} PRIVATE -DOPTPARSE_IMPLEMENTATION -DOPTPARSE_API=static)
+  target_include_directories(${_target} PRIVATE ${optparse_source_dir})
   #
   # We know this will produce two targets: tconv_shared_exe and tconv_static_exe
   #
@@ -253,8 +328,8 @@ cmake_helpers_exe(tconvExample
   ENVIRONMENT    ${_test_environment}
 )
 foreach(_target IN LISTS example_targets)
-  cmake_helpers_call(target_compile_definitions ${_target} PRIVATE -DOPTPARSE_IMPLEMENTATION -DOPTPARSE_API=static)
-  cmake_helpers_call(target_include_directories ${_target} PRIVATE ${optparse_source_dir})
+  target_compile_definitions(${_target} PRIVATE -DOPTPARSE_IMPLEMENTATION -DOPTPARSE_API=static)
+  target_include_directories(${_target} PRIVATE ${optparse_source_dir})
   #
   # Specific to SunOs
   #
