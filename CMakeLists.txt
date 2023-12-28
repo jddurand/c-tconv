@@ -138,7 +138,6 @@ if(WIN32 AND NOT CYGWIN)
       target_link_libraries(dl_iface INTERFACE dl $<TARGET_OBJECTS:dl>)
       list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE dl_iface)
     endblock()
-    list(APPEND libtconv_depends_ext PRIVATE TARGET_OBJECTS dl)
   else()
     cmake_helpers_depend(dlfcn-win32
       EXTERNALPROJECT_ADD_ARGS
