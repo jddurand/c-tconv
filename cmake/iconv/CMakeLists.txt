@@ -27,7 +27,7 @@
 #
 cmake_minimum_required(VERSION 3.26.0 FATAL_ERROR)
 if(NOT DEFINED ICONV_VERSION)
-  set(ICONV_VERSION 1.17)
+  message(FATAL_ERROR "Missing -DICONV_VERSION=<the version>")
 endif()
 project(libiconv VERSION ${ICONV_VERSION} LANGUAGES C)
 option(WITH_ICONV_CONST "use a const in iconv" OFF)
@@ -302,4 +302,6 @@ cmake_helpers_library(libiconv SOURCES libcharset/lib/localcharset.c lib/relocat
 #
 # Package
 #
-cmake_helpers_package()
+cmake_helpers_package(
+  LICENSE ${PROJECT_SOURCE_DIR}/COPYING
+)
