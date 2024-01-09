@@ -125,6 +125,8 @@ test_script:
 on_failure:
   - ps: if(Test-Path build_folder\CMakeFiles\CMakeOutput.log) { cat build_folder\CMakeFiles\CMakeOutput.log }
   - ps: if(Test-Path build_folder\CMakeFiles\CMakeError.log) { cat build_folder\CMakeFiles\CMakeError.log }
+  - ps: if(Test-Path build_folder\_CPack_Packages\win32\NSIS\NSISOutput.log) { cat build_folder\_CPack_Packages\win32\NSIS\NSISOutput.log }
+  - ps: if(Test-Path build_folder\_CPack_Packages\win64\NSIS\NSISOutput.log) { cat build_folder\_CPack_Packages\win64\NSIS\NSISOutput.log }
 
 artifacts:
   - path: "build_folder/*-%_CC%.exe"
