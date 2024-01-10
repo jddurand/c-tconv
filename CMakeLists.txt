@@ -96,17 +96,17 @@ endif()
 if(WIN32 AND NOT CYGWIN)
   set(dlfcn_win32_version 1.4.1)
   set(dlfcn_win32_url https://github.com/dlfcn-win32/dlfcn-win32/archive/refs/tags/v${dlfcn_win32_version}.tar.gz)
-  set(DLFCN-WIN32_VERSION ${dlfcn_win32_version}) # For the inner add_subdirectory()
-  cmake_helpers_depend(dlfcn-win32
+  set(DLFCN_WIN32_VERSION ${dlfcn_win32_version}) # For the inner add_subdirectory()
+  cmake_helpers_depend(dlfcn_win32
     EXTERNALPROJECT_ADD_ARGS
       URL ${dlfcn_win32_url}
       PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/cmake/dlfcn-win32/CMakeLists.txt .
-    CMAKE_ARGS -DDLFCN-WIN32_VERSION=${dlfcn_win32_version}
+    CMAKE_ARGS -DDLFCN_WIN32_VERSION=${dlfcn_win32_version}
     FIND FALSE # This is how we can force a rebuild and a local install
     FIND_PACKAGE_ARGS REQUIRED
   )
-  list(APPEND libtconv_find_dependencies "dlfcn-win32 REQUIRED CONFIG")
-  list(APPEND libtconv_depends PUBLIC dlfcn-win32::dlfcn-win32)
+  list(APPEND libtconv_find_dependencies "dlfcn_win32 REQUIRED CONFIG")
+  list(APPEND libtconv_depends PUBLIC dlfcn_win32::dlfcn_win32)
 else()
   if(CMAKE_DL_LIBS)
     list(APPEND libtconv_depends PUBLIC ${CMAKE_DL_LIBS})

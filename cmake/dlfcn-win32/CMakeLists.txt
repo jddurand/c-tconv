@@ -22,10 +22,10 @@
 # cmake --build dlfcn-win32-build --target package
 #
 cmake_minimum_required(VERSION 3.26.0 FATAL_ERROR)
-if(NOT DEFINED DLFCN-WIN32_VERSION)
-  message(FATAL_ERROR "Missing -DDLFCN-WIN32_VERSION=<the version>")
+if(NOT DEFINED DLFCN_WIN32_VERSION)
+  message(FATAL_ERROR "Missing -DDLFCN_WIN32_VERSION=<the version>")
 endif()
-project(dlfcn-win32 VERSION ${DLFCN-WIN32_VERSION} LANGUAGES C)
+project(dlfcn_win32 VERSION ${DLFCN_WIN32_VERSION} LANGUAGES C)
 #
 # Check we are WIN32
 #
@@ -53,7 +53,7 @@ cmake_helpers_library(dl
 include(CTest)
 add_library(testdll SHARED tests/testdll.c)
 add_library(testdll2 SHARED tests/testdll2.c)
-target_link_libraries(testdll2 dlfcn-win32)
+target_link_libraries(testdll2 dlfcn_win32)
 add_library(testdll3 SHARED tests/testdll3.c)
 cmake_helpers_exe(t_dlfcn
   SOURCES        tests/test.c
