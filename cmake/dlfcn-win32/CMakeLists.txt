@@ -42,10 +42,9 @@ FetchContent_MakeAvailable(cmake-helpers)
 # Create library
 #
 cmake_helpers_library(dl
-  SOURCES_BASE_DIRS                   ${PROJECT_SOURCE_DIR}/src
-  HEADERS_BASE_DIRS                   ${PROJECT_SOURCE_DIR}/src
-  EXPORT_HEADER_SHARED_EXPORTS_DEFINE -DDLFCN_WIN32_EXPORTS
-  SHARED_PUBLIC_DEFINES               -DDLFCN_WIN32_SHARED
+  SOURCES_BASE_DIRS     ${PROJECT_SOURCE_DIR}/src
+  HEADERS_BASE_DIRS     ${PROJECT_SOURCE_DIR}/src
+  SHARED_PUBLIC_DEFINES -DDLFCN_WIN32_SHARED
 )
 #
 # Tests
@@ -53,13 +52,22 @@ cmake_helpers_library(dl
 include(CTest)
 add_library(testdll SHARED tests/testdll.c)
 add_library(testdll2 SHARED tests/testdll2.c)
-target_link_libraries(testdll2 dlfcn_win32)
+target_link_libraries(testdll2 PUBLIC dl)
 add_library(testdll3 SHARED tests/testdll3.c)
 cmake_helpers_exe(t_dlfcn
-  SOURCES        tests/test.c
-  INSTALL        FALSE
-  TEST           TRUE
+  SOURCES             tests/test.c
+  INSTALL             FALSE
+  TEST                TRUE
+  TARGETS_OUTVAR      targets
+  TEST_TARGETS_OUTVAR test_targets
+  # t_dlfcn is looking for testdll's
+  TARGETS_DEPENDS     testdll testdll2 testdll3
+  TEST_TARGETS_OUTVAR test_targets
 )
+#
+# t_dlfcn will try to open dll files, so we force the working directory to where they are
+#
+set_tests_properties(${test_targets} PROPERTIES WORKING_DIRECTORY $<TARGET_FILE_DIR:testdll>)
 #
 # test-dladdr needs hook that are available only with MSVC or linkers that support the -Wl syntax
 #

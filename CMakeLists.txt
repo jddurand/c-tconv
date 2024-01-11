@@ -39,12 +39,13 @@ FetchContent_MakeAvailable(cmake-helpers)
 #
 # Dependencies
 #
-# iconv
+# iconv - we want to embed libiconv in tconv
 #
 set(libtconv_src src/tconv.c src/tconv/charset/tconv_charset_cchardet.c)
 set(libtconv_depends)
 set(libtconv_depends_ext)
 set(libtconv_find_dependencies)
+set(libtconv_extra_licenses)
 if(TCONV_USE_ICONV)
   set(libiconv_version 1.17)
   set(libiconv_url https://ftp.gnu.org/gnu/libiconv/libiconv-${libiconv_version}.tar.gz)
@@ -55,11 +56,14 @@ if(TCONV_USE_ICONV)
       PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/cmake/iconv/CMakeLists.txt .
             COMMAND ${CMAKE_COMMAND} -E rm include/export.h # This file has nothing to do here -;
     CMAKE_ARGS -DICONV_VERSION=${libiconv_version}
-    FIND FALSE # This is how we can force a rebuild and a local install
-    FIND_PACKAGE_ARGS REQUIRED CONFIG
+    FIND FALSE
+    INSTALL FALSE
+    MAKEAVAILABLE TRUE
+    EXCLUDE_FROM_ALL TRUE
+    SOURCE_DIR_OUTVAR libiconv_source_dir
   )
-  list(APPEND libtconv_find_dependencies "libiconv REQUIRED CONFIG")
-  list(APPEND libtconv_depends PUBLIC libiconv::libiconv)
+  list(APPEND libtconv_extra_licenses libiconv ${libiconv_source_dir}/COPYING)
+  list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE libiconv_static_iface)
   set(TCONV_HAVE_ICONV 1)
   set(ICONV_SECOND_ARGUMENT_IS_CONST FALSE)
   set(ICONV_CAN_TRANSLIT TRUE)
@@ -91,7 +95,7 @@ if(WIN32 AND TCONV_HAVE_ICU AND ICU_UCONV_EXECUTABLE)
   list(APPEND _test_environment ${_parent_path})
 endif()
 #
-# Portable dlopen for Win32
+# Portable dlopen for Win32: we want to embed dl in tconv
 #
 if(WIN32 AND NOT CYGWIN)
   set(dlfcn_win32_version 1.4.1)
@@ -102,16 +106,19 @@ if(WIN32 AND NOT CYGWIN)
       URL ${dlfcn_win32_url}
       PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/cmake/dlfcn-win32/CMakeLists.txt .
     CMAKE_ARGS -DDLFCN_WIN32_VERSION=${dlfcn_win32_version}
-    FIND FALSE # This is how we can force a rebuild and a local install
-    FIND_PACKAGE_ARGS REQUIRED
+    FIND FALSE
+    INSTALL FALSE
+    MAKEAVAILABLE TRUE
+    EXCLUDE_FROM_ALL TRUE
+    SOURCE_DIR_OUTVAR dlfcn_win32_source_dir
   )
-  list(APPEND libtconv_find_dependencies "dlfcn_win32 REQUIRED CONFIG")
-  list(APPEND libtconv_depends PUBLIC dlfcn_win32::dlfcn_win32)
+  list(APPEND libtconv_extra_licenses dlfcn-win32 ${dlfcn_win32_source_dir}/COPYING)
+  list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE dl_static_iface)
 else()
   if(CMAKE_DL_LIBS)
     list(APPEND libtconv_depends PUBLIC ${CMAKE_DL_LIBS})
   else()
-    message(WARNING "No library containing dlopen/dlclose()")
+    message(WARNING "No library containing dlopen/dlclose")
   endif()
 endif()
 #
@@ -127,7 +134,7 @@ cmake_helpers_depend(genericLogger
 list(APPEND libtconv_find_dependencies "genericLogger REQUIRED CONFIG")
 list(APPEND libtconv_depends PUBLIC genericLogger::genericLogger)
 #
-# ccharset sources
+# cchardet sources
 #
 set(cchardet_tarball ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/tar/cchardet-1.0.0.tar.gz)
 set(cchardet_workdir ${CMAKE_CURRENT_BINARY_DIR}/cchardet-1.0.0)
@@ -271,4 +278,6 @@ endforeach()
 #
 # Package
 #
-cmake_helpers_package()
+cmake_helpers_package(
+  EXTRA_LICENSES ${libtconv_extra_licenses}
+)
