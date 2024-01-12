@@ -28,7 +28,7 @@ project(tconv VERSION 1.0.86 LANGUAGES C CXX)
 #
 # Specific options
 #
-option(TCONV_USE_ICU    "Enable ICU plugin if found" ON)
+option(TCONV_USE_ICU    "Enable ICU plugin if found" OFF)
 option(TCONV_USE_ICONV  "Enable ICONV plugin plugin" ON)
 #
 # Get library helper
