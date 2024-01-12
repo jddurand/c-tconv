@@ -48,11 +48,12 @@ set(libtconv_find_dependencies)
 set(libtconv_extra_licenses)
 if(TCONV_USE_ICONV)
   set(libiconv_version 1.17)
+  set(libiconv_file ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/tar/libiconv-${libiconv_version}.tar.gz)
   set(libiconv_url https://ftp.gnu.org/gnu/libiconv/libiconv-${libiconv_version}.tar.gz)
   set(ICONV_VERSION ${libiconv_version}) # For the inner add_subdirectory()
   cmake_helpers_depend(libiconv
     EXTERNALPROJECT_ADD_ARGS
-      URL ${libiconv_url}
+      URL ${libiconv_file}
       PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/cmake/iconv/CMakeLists.txt .
             COMMAND ${CMAKE_COMMAND} -E rm include/export.h # This file has nothing to do here -;
     CMAKE_ARGS -DICONV_VERSION=${libiconv_version}
@@ -99,11 +100,12 @@ endif()
 #
 if(WIN32 AND NOT CYGWIN)
   set(dlfcn_win32_version 1.4.1)
+  set(dlfcn_win32_file ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/tar/dlfcn-win32-${dlfcn_win32_version}.tar.gz)
   set(dlfcn_win32_url https://github.com/dlfcn-win32/dlfcn-win32/archive/refs/tags/v${dlfcn_win32_version}.tar.gz)
   set(DLFCN_WIN32_VERSION ${dlfcn_win32_version}) # For the inner add_subdirectory()
   cmake_helpers_depend(dlfcn_win32
     EXTERNALPROJECT_ADD_ARGS
-      URL ${dlfcn_win32_url}
+      URL ${dlfcn_win32_file}
       PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/cmake/dlfcn-win32/CMakeLists.txt .
     CMAKE_ARGS -DDLFCN_WIN32_VERSION=${dlfcn_win32_version}
     FIND FALSE
@@ -183,6 +185,8 @@ cmake_helpers_depend(optparse
   # Setting FIND and INSTALL to FALSE guaranteed that we download the source and do nothing else
   #
   FIND FALSE
+  CONFIGURE FALSE
+  BUILD FALSE
   INSTALL FALSE
   #
   # ../. which means that these variables will always be set
