@@ -130,7 +130,7 @@ else()
   endif()
 endif()
 #
-# Generic logger: interface dependency (we use it but do not expose it)
+# Generic logger: compile only dependency (we use it but do not expose it)
 #
 set(genericLogger_git https://github.com/jddurand/c-genericLogger.git)
 cmake_helpers_depend(genericLogger
@@ -142,7 +142,8 @@ cmake_helpers_depend(genericLogger
     CONFIG
 )
 list(APPEND libtconv_find_dependencies "genericLogger REQUIRED CONFIG")
-list(APPEND libtconv_depends PUBLIC genericLogger::genericLogger)
+list(APPEND libtconv_depends PRIVATE genericLogger::genericLogger)
+list(APPEND libtconv_depends PUBLIC $<LINK_ONLY:genericLogger::genericLogger>)
 #
 # cchardet sources: embedded using source files
 #
@@ -242,6 +243,7 @@ cmake_helpers_pod(INPUT ${CMAKE_CURRENT_SOURCE_DIR}/include/tconv/README.pod NAM
 #
 cmake_helpers_exe(tconv
   SOURCES         bin/tconv.c
+  DEPENDS         PRIVATE genericLogger::genericLogger
   INSTALL         TRUE
   TEST            TRUE
   TEST_ARGS       -t UTF-16 -o tconv.tconv-UTF-16.c "${CMAKE_CURRENT_SOURCE_DIR}/src/tconv.c"
