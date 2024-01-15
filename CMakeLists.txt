@@ -142,7 +142,7 @@ cmake_helpers_depend(genericLogger
     CONFIG
 )
 list(APPEND libtconv_find_dependencies "genericLogger REQUIRED CONFIG")
-list(APPEND libtconv_depends PRIVATE genericLogger::genericLogger)
+list(APPEND libtconv_depends PUBLIC genericLogger::genericLogger)
 #
 # cchardet sources: embedded using source files
 #
@@ -244,7 +244,6 @@ cmake_helpers_exe(tconv
   SOURCES         bin/tconv.c
   INSTALL         TRUE
   TEST            TRUE
-  DEPENDS         PUBLIC genericLogger::genericLogger
   TEST_ARGS       -t UTF-16 -o tconv.tconv-UTF-16.c "${CMAKE_CURRENT_SOURCE_DIR}/src/tconv.c"
   TARGETS_OUTVAR  tconv_targets
   ENVIRONMENT     ${_test_environment}
