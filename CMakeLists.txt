@@ -39,13 +39,14 @@ FetchContent_MakeAvailable(cmake-helpers)
 #
 # Dependencies
 #
-# iconv - we want to embed libiconv in tconv
-#
-set(libtconv_src src/tconv.c src/tconv/charset/tconv_charset_cchardet.c)
 set(libtconv_depends)
 set(libtconv_depends_ext)
 set(libtconv_find_dependencies)
 set(libtconv_extra_licenses)
+#
+# iconv: We always want to embed libiconv in tconv
+#
+set(libtconv_src src/tconv.c src/tconv/charset/tconv_charset_cchardet.c)
 if(TCONV_USE_ICONV)
   set(libiconv_version 1.17)
   set(libiconv_file ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/tar/libiconv-${libiconv_version}.tar.gz)
@@ -58,9 +59,12 @@ if(TCONV_USE_ICONV)
             COMMAND ${CMAKE_COMMAND} -E rm include/export.h # This file has nothing to do here -;
     CMAKE_ARGS -DICONV_VERSION=${libiconv_version}
     FIND FALSE
+    CONFIGURE FALSE
+    BUILD FALSE
     INSTALL FALSE
     MAKEAVAILABLE TRUE
     EXCLUDE_FROM_ALL TRUE
+    EXPORT_HEADER_STATIC_DEFINE libiconv_STATIC # This is the default but we set it to be sure we control it
     SOURCE_DIR_OUTVAR libiconv_source_dir
   )
   list(APPEND libtconv_extra_licenses libiconv ${libiconv_source_dir}/COPYING)
@@ -96,7 +100,7 @@ if(WIN32 AND TCONV_HAVE_ICU AND ICU_UCONV_EXECUTABLE)
   list(APPEND _test_environment ${_parent_path})
 endif()
 #
-# Portable dlopen for Win32: we want to embed dl in tconv
+# Portable dlopen for Win32: we always want to embed dl in tconv
 #
 if(WIN32 AND NOT CYGWIN)
   set(dlfcn_win32_version 1.4.1)
@@ -109,6 +113,8 @@ if(WIN32 AND NOT CYGWIN)
       PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/cmake/dlfcn-win32/CMakeLists.txt .
     CMAKE_ARGS -DDLFCN_WIN32_VERSION=${dlfcn_win32_version}
     FIND FALSE
+    CONFIGURE FALSE
+    BUILD FALSE
     INSTALL FALSE
     MAKEAVAILABLE TRUE
     EXCLUDE_FROM_ALL TRUE
@@ -124,19 +130,21 @@ else()
   endif()
 endif()
 #
-# Generic logger
+# Generic logger: interface dependency (we use it but do not expose it)
 #
 set(genericLogger_git https://github.com/jddurand/c-genericLogger.git)
 cmake_helpers_depend(genericLogger
   EXTERNALPROJECT_ADD_ARGS
     GIT_REPOSITORY ${genericLogger_git}
     GIT_SHALLOW TRUE
-  FIND_PACKAGE_ARGS REQUIRED CONFIG
+  FIND_PACKAGE_ARGS
+    REQUIRED
+    CONFIG
 )
 list(APPEND libtconv_find_dependencies "genericLogger REQUIRED CONFIG")
-list(APPEND libtconv_depends PUBLIC genericLogger::genericLogger)
+list(APPEND libtconv_depends PRIVATE genericLogger::genericLogger)
 #
-# cchardet sources
+# cchardet sources: embedded using source files
 #
 set(cchardet_tarball ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/tar/cchardet-1.0.0.tar.gz)
 set(cchardet_workdir ${CMAKE_CURRENT_BINARY_DIR}/cchardet-1.0.0)
@@ -174,7 +182,7 @@ set(ccharset_inc
   ${cchardet_workdir}/src/ext/libcharsetdetect
 )
 #
-# optparse
+# optparse: embedded using source files
 #
 set(optparse_git https://github.com/skeeto/optparse.git)
 cmake_helpers_depend(optparse
@@ -188,6 +196,8 @@ cmake_helpers_depend(optparse
   CONFIGURE FALSE
   BUILD FALSE
   INSTALL FALSE
+  MAKEAVAILABLE FALSE
+  EXCLUDE_FROM_ALL TRUE
   #
   # ../. which means that these variables will always be set
   #
@@ -231,12 +241,13 @@ cmake_helpers_pod(INPUT ${CMAKE_CURRENT_SOURCE_DIR}/include/tconv/README.pod NAM
 # EXEs
 #
 cmake_helpers_exe(tconv
-  SOURCES        bin/tconv.c
-  INSTALL        TRUE
-  TEST           TRUE
-  TEST_ARGS      -t UTF-16 -o tconv.tconv-UTF-16.c "${CMAKE_CURRENT_SOURCE_DIR}/src/tconv.c"
-  TARGETS_OUTVAR tconv_targets
-  ENVIRONMENT    ${_test_environment}
+  SOURCES         bin/tconv.c
+  INSTALL         TRUE
+  TEST            TRUE
+  DEPENDS         PUBLIC genericLogger::genericLogger
+  TEST_ARGS       -t UTF-16 -o tconv.tconv-UTF-16.c "${CMAKE_CURRENT_SOURCE_DIR}/src/tconv.c"
+  TARGETS_OUTVAR  tconv_targets
+  ENVIRONMENT     ${_test_environment}
 )
 foreach(_target IN LISTS tconv_targets)
   target_compile_definitions(${_target} PRIVATE -DOPTPARSE_IMPLEMENTATION -DOPTPARSE_API=static)
