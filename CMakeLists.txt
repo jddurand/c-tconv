@@ -26,6 +26,13 @@
 cmake_minimum_required(VERSION 3.26.0 FATAL_ERROR)
 project(tconv VERSION 1.0.87 LANGUAGES C CXX)
 #
+# Specific options via environment variables
+#
+set(TCONV_PREFER_STATIC_DEPENDENCIES $ENV{CMAKE_HELPERS_PREFER_STATIC_DEPENDENCIES})
+set(TCONV_PREFER_OBJECT_INTERFACES   $ENV{CMAKE_HELPERS_PREFER_OBJECT_INTERFACES})
+message(STATUS "Prefer static dependencies: ${TCONV_PREFER_STATIC_DEPENDENCIES}")
+message(STATUS "Prefer object dependencies: ${TCONV_PREFER_OBJECT_INTERFACES}")
+#
 # Specific options
 #
 option(TCONV_USE_ICU    "Enable ICU plugin if found" OFF)
@@ -133,17 +140,43 @@ endif()
 # Generic logger: compile only dependency (we use it but do not expose it)
 #
 set(genericLogger_git https://github.com/jddurand/c-genericLogger.git)
-cmake_helpers_depend(genericLogger
-  EXTERNALPROJECT_ADD_ARGS
-    GIT_REPOSITORY ${genericLogger_git}
-    GIT_SHALLOW TRUE
-  FIND_PACKAGE_ARGS
-    REQUIRED
-    CONFIG
-)
-list(APPEND libtconv_find_dependencies "genericLogger REQUIRED CONFIG")
-list(APPEND libtconv_depends PRIVATE genericLogger::genericLogger)
-list(APPEND libtconv_depends PUBLIC $<LINK_ONLY:genericLogger::genericLogger>)
+if(TCONV_PREFER_OBJECT_INTERFACES)
+  cmake_helpers_depend(genericLogger
+    EXTERNALPROJECT_ADD_ARGS
+      GIT_REPOSITORY ${genericLogger_git}
+      GIT_SHALLOW TRUE
+    FIND FALSE
+    CONFIGURE FALSE
+    BUILD FALSE
+    INSTALL FALSE
+    MAKEAVAILABLE TRUE
+    EXCLUDE_FROM_ALL TRUE
+    SOURCE_DIR_OUTVAR genericLogger_source_dir
+  )
+  list(APPEND tconv_extra_licenses genericLogger ${genericLogger_source_dir}/LICENSE)
+  if(TCONV_PREFER_STATIC_DEPENDENCIES)
+    list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE genericLogger_static_iface)
+  else()
+    list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE genericLogger_iface)
+  endif()
+else()
+  cmake_helpers_depend(genericLogger
+    EXTERNALPROJECT_ADD_ARGS
+      GIT_REPOSITORY ${genericLogger_git}
+      GIT_SHALLOW TRUE
+    FIND_PACKAGE_ARGS
+      REQUIRED
+      CONFIG
+    )
+  list(APPEND libtconv_find_dependencies "genericLogger REQUIRED CONFIG")
+  if(TCONV_PREFER_STATIC_DEPENDENCIES)
+    list(APPEND libtconv_depends PRIVATE genericLogger::genericLogger_static)
+    list(APPEND libtconv_depends PUBLIC $<LINK_ONLY:genericLogger::genericLogger_static>)
+  else()
+    list(APPEND libtconv_depends PRIVATE genericLogger::genericLogger)
+    list(APPEND libtconv_depends PUBLIC $<LINK_ONLY:genericLogger::genericLogger>)
+  endif()
+endif()
 #
 # cchardet sources: embedded using source files
 #
@@ -241,9 +274,22 @@ cmake_helpers_pod(INPUT ${CMAKE_CURRENT_SOURCE_DIR}/include/tconv/README.pod NAM
 #
 # EXEs
 #
+if(TCONV_PREFER_OBJECT_INTERFACES)
+  if(TCONV_PREFER_STATIC_DEPENDENCIES)
+    set(tconv_exe_depends PRIVATE genericLogger_static_iface)
+  else()
+    set(tconv_exe_depends PRIVATE genericLogger_iface)
+  endif()
+else()
+  if(TCONV_PREFER_STATIC_DEPENDENCIES)
+    set(tconv_exe_depends PRIVATE genericLogger::genericLogger_static)
+  else()
+    set(tconv_exe_depends PRIVATE genericLogger::genericLogger)
+  endif()
+endif()
 cmake_helpers_exe(tconv
   SOURCES         bin/tconv.c
-  DEPENDS         PRIVATE genericLogger::genericLogger
+  DEPENDS         ${tconv_exe_depends}
   INSTALL         TRUE
   TEST            TRUE
   TEST_ARGS       -t UTF-16 -o tconv.tconv-UTF-16.c "${CMAKE_CURRENT_SOURCE_DIR}/src/tconv.c"
