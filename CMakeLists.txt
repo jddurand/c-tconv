@@ -74,6 +74,9 @@ if(TCONV_USE_ICONV)
     EXPORT_HEADER_STATIC_DEFINE libiconv_STATIC # This is the default but we set it to be sure we control it
     SOURCE_DIR_OUTVAR libiconv_source_dir
   )
+  #
+  # We always use libiconv static objects regardless of TCONV_PREFER_STATIC_DEPENDENCIES or TCONV_PREFER_OBJECT_INTERFACES
+  #
   list(APPEND libtconv_extra_licenses libiconv ${libiconv_source_dir}/COPYING)
   list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE libiconv_static_iface)
   set(TCONV_HAVE_ICONV 1)
@@ -127,6 +130,9 @@ if(WIN32 AND NOT CYGWIN)
     EXCLUDE_FROM_ALL TRUE
     SOURCE_DIR_OUTVAR dlfcn_win32_source_dir
   )
+  #
+  # We always use dlfcn_win32 static objects regardless of TCONV_PREFER_STATIC_DEPENDENCIES or TCONV_PREFER_OBJECT_INTERFACES
+  #
   list(APPEND libtconv_extra_licenses dlfcn-win32 ${dlfcn_win32_source_dir}/COPYING)
   list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE dl_static_iface)
 else()
@@ -137,7 +143,7 @@ else()
   endif()
 endif()
 #
-# Generic logger: compile only dependency (we use it but do not expose it)
+# Generic logger: private dependency
 #
 set(genericLogger_git https://github.com/jddurand/c-genericLogger.git)
 if(TCONV_PREFER_OBJECT_INTERFACES)
@@ -171,10 +177,8 @@ else()
   list(APPEND libtconv_find_dependencies "genericLogger REQUIRED CONFIG")
   if(TCONV_PREFER_STATIC_DEPENDENCIES)
     list(APPEND libtconv_depends PRIVATE genericLogger::genericLogger_static)
-    list(APPEND libtconv_depends PUBLIC $<LINK_ONLY:genericLogger::genericLogger_static>)
   else()
     list(APPEND libtconv_depends PRIVATE genericLogger::genericLogger)
-    list(APPEND libtconv_depends PUBLIC $<LINK_ONLY:genericLogger::genericLogger>)
   endif()
 endif()
 #
@@ -272,7 +276,7 @@ endif()
 cmake_helpers_pod(INPUT ${CMAKE_CURRENT_SOURCE_DIR}/include/README.pod NAME tconv SECTION 3)
 cmake_helpers_pod(INPUT ${CMAKE_CURRENT_SOURCE_DIR}/include/tconv/README.pod NAME tconv_ext SECTION 3)
 #
-# EXEs
+# EXEs: we use explicitly genericLogger in the tconv callback
 #
 if(TCONV_PREFER_OBJECT_INTERFACES)
   if(TCONV_PREFER_STATIC_DEPENDENCIES)
