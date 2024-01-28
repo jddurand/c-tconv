@@ -286,8 +286,27 @@ cmake_helpers_pod(INPUT ${CMAKE_CURRENT_SOURCE_DIR}/include/tconv/README.pod NAM
 #
 # EXEs
 #
+set(tconv_depends_ext)
+set(tconv_depends)
+if(TCONV_PREFER_OBJECT_INTERFACES)
+  if(TCONV_PREFER_STATIC_DEPENDENCIES)
+    list(APPEND tconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:genericLogger_static_objs_iface>)
+    list(APPEND tconv_depends PRIVATE $<LINK_ONLY:genericLogger_static_objs_iface>)
+  else()
+    list(APPEND tconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:genericLogger_objs_iface>)
+    list(APPEND tconv_depends PRIVATE $<LINK_ONLY:genericLogger_objs_iface>)
+  endif()
+else()
+  if(TCONV_PREFER_STATIC_DEPENDENCIES)
+    list(APPEND tconv_depends PRIVATE genericLogger::genericLogger_static)
+  else()
+    list(APPEND tconv_depends PRIVATE genericLogger::genericLogger)
+  endif()
+endif()
 cmake_helpers_exe(tconv
   SOURCES        bin/tconv.c
+  DEPENDS        ${tconv_depends}
+  DEPENDS_EXT    ${tconv_depends_ext}
   INSTALL        TRUE
   TEST           TRUE
   TEST_ARGS      -t UTF-16 -o tconv.tconv-UTF-16.c "${CMAKE_CURRENT_SOURCE_DIR}/src/tconv.c"
