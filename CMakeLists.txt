@@ -79,11 +79,11 @@ if(TCONV_USE_ICONV)
   #
   list(APPEND libtconv_extra_licenses libiconv ${libiconv_source_dir}/COPYING)
   #
-  # This hack of "PUBLIC BUILD_LOCAL_INTERFACE xx_iface" followed by "PUBLIC $<TARGET_OBJECTS:xx>" is for having
+  # This hack of "PUBLIC BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:xx_iface>" followed by "PUBLIC $<LINK_ONLY:xx>" is for having
   # xx compilation usage requirements forwarded to our targets, link with xx objects, without having to depend on xx export set.
   #
-  list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:libiconv_static_iface>)
-  list(APPEND libtconv_depends PUBLIC $<TARGET_OBJECTS:libiconv_static>)
+  list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:libiconv_static_objs_iface>)
+  list(APPEND libtconv_depends PRIVATE $<LINK_ONLY:libiconv_static_objs_iface>)
   set(TCONV_HAVE_ICONV 1)
   set(ICONV_SECOND_ARGUMENT_IS_CONST FALSE)
   set(ICONV_CAN_TRANSLIT TRUE)
@@ -139,8 +139,8 @@ if(WIN32 AND NOT CYGWIN)
   # We always use dlfcn_win32 static objects regardless of TCONV_PREFER_STATIC_DEPENDENCIES or TCONV_PREFER_OBJECT_INTERFACES
   #
   list(APPEND libtconv_extra_licenses dlfcn-win32 ${dlfcn_win32_source_dir}/COPYING)
-  list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:dl_static_iface>)
-  list(APPEND libtconv_depends PUBLIC $<TARGET_OBJECTS:dl_static>)
+  list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:dl_static_objs_iface>)
+  list(APPEND libtconv_depends PRIVATE $<LINK_ONLY:dl_static_objs_iface>)
 else()
   if(CMAKE_DL_LIBS)
     list(APPEND libtconv_depends PUBLIC ${CMAKE_DL_LIBS})
@@ -167,11 +167,11 @@ if(TCONV_PREFER_OBJECT_INTERFACES)
   )
   list(APPEND tconv_extra_licenses genericLogger ${genericLogger_source_dir}/LICENSE)
   if(TCONV_PREFER_STATIC_DEPENDENCIES)
-    list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:genericLogger_static_iface>)
-    list(APPEND libtconv_depends PUBLIC $<TARGET_OBJECTS:genericLogger_static>)
+    list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:genericLogger_static_objs_iface>)
+    list(APPEND libtconv_depends PRIVATE $<LINK_ONLY:genericLogger_static_objs_iface>)
   else()
-    list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:genericLogger_iface>)
-    list(APPEND libtconv_depends PUBLIC $<TARGET_OBJECTS:genericLogger>)
+    list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:genericLogger_objs_iface>)
+    list(APPEND libtconv_depends PRIVATE $<LINK_ONLY:genericLogger_objs_iface>)
   endif()
 else()
   cmake_helpers_depend(genericLogger
