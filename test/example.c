@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <tconv.h>
-#include <optparse.h>
 
 static short producer(tconv_helper_t *tconv_helperp, void *voidp, char **bufpp, size_t *countlp);
 static short consumer(tconv_helper_t *tconv_helperp, void *voidp, char *bufp, size_t countl, size_t *countlp);

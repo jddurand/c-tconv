@@ -78,7 +78,12 @@ if(TCONV_USE_ICONV)
   # We always use libiconv static objects regardless of TCONV_PREFER_STATIC_DEPENDENCIES or TCONV_PREFER_OBJECT_INTERFACES
   #
   list(APPEND libtconv_extra_licenses libiconv ${libiconv_source_dir}/COPYING)
-  list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE libiconv_static_iface)
+  #
+  # This hack of "PUBLIC BUILD_LOCAL_INTERFACE xx_iface" followed by "PUBLIC $<TARGET_OBJECTS:xx>" is for having
+  # xx compilation usage requirements forwarded to our targets, link with xx objects, without having to depend on xx export set.
+  #
+  list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:libiconv_static_iface>)
+  list(APPEND libtconv_depends PUBLIC $<TARGET_OBJECTS:libiconv_static>)
   set(TCONV_HAVE_ICONV 1)
   set(ICONV_SECOND_ARGUMENT_IS_CONST FALSE)
   set(ICONV_CAN_TRANSLIT TRUE)
@@ -94,8 +99,8 @@ if(TCONV_USE_ICU)
     set(TCONV_HAVE_ICU 1)
     list(APPEND libtconv_src src/tconv/charset/tconv_charset_ICU.c src/tconv/convert/tconv_convert_ICU.c)
     list(APPEND libtconv_find_dependencies "ICU REQUIRED COMPONENTS uc i18n")
-    list(APPEND libtconv_depends PUBLIC ICU::uc)
-    list(APPEND libtconv_depends PUBLIC ICU::i18n)
+    list(APPEND libtconv_depends INTERFACE ICU::uc)
+    list(APPEND libtconv_depends INTERFACE ICU::i18n)
   else()
     message(WARNING "Option USE_ICU is ON but ICU is not found")
   endif()
@@ -134,7 +139,8 @@ if(WIN32 AND NOT CYGWIN)
   # We always use dlfcn_win32 static objects regardless of TCONV_PREFER_STATIC_DEPENDENCIES or TCONV_PREFER_OBJECT_INTERFACES
   #
   list(APPEND libtconv_extra_licenses dlfcn-win32 ${dlfcn_win32_source_dir}/COPYING)
-  list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE dl_static_iface)
+  list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:dl_static_iface>)
+  list(APPEND libtconv_depends PUBLIC $<TARGET_OBJECTS:dl_static>)
 else()
   if(CMAKE_DL_LIBS)
     list(APPEND libtconv_depends PUBLIC ${CMAKE_DL_LIBS})
@@ -161,9 +167,11 @@ if(TCONV_PREFER_OBJECT_INTERFACES)
   )
   list(APPEND tconv_extra_licenses genericLogger ${genericLogger_source_dir}/LICENSE)
   if(TCONV_PREFER_STATIC_DEPENDENCIES)
-    list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE genericLogger_static_iface)
+    list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:genericLogger_static_iface>)
+    list(APPEND libtconv_depends PUBLIC $<TARGET_OBJECTS:genericLogger_static>)
   else()
-    list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE genericLogger_iface)
+    list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:genericLogger_iface>)
+    list(APPEND libtconv_depends PUBLIC $<TARGET_OBJECTS:genericLogger>)
   endif()
 else()
   cmake_helpers_depend(genericLogger
@@ -276,29 +284,15 @@ endif()
 cmake_helpers_pod(INPUT ${CMAKE_CURRENT_SOURCE_DIR}/include/README.pod NAME tconv SECTION 3)
 cmake_helpers_pod(INPUT ${CMAKE_CURRENT_SOURCE_DIR}/include/tconv/README.pod NAME tconv_ext SECTION 3)
 #
-# EXEs: we use explicitly genericLogger in the tconv callback
+# EXEs
 #
-if(TCONV_PREFER_OBJECT_INTERFACES)
-  if(TCONV_PREFER_STATIC_DEPENDENCIES)
-    set(tconv_exe_depends PRIVATE genericLogger_static_iface)
-  else()
-    set(tconv_exe_depends PRIVATE genericLogger_iface)
-  endif()
-else()
-  if(TCONV_PREFER_STATIC_DEPENDENCIES)
-    set(tconv_exe_depends PRIVATE genericLogger::genericLogger_static)
-  else()
-    set(tconv_exe_depends PRIVATE genericLogger::genericLogger)
-  endif()
-endif()
 cmake_helpers_exe(tconv
-  SOURCES         bin/tconv.c
-  DEPENDS         ${tconv_exe_depends}
-  INSTALL         TRUE
-  TEST            TRUE
-  TEST_ARGS       -t UTF-16 -o tconv.tconv-UTF-16.c "${CMAKE_CURRENT_SOURCE_DIR}/src/tconv.c"
-  TARGETS_OUTVAR  tconv_targets
-  ENVIRONMENT     ${_test_environment}
+  SOURCES        bin/tconv.c
+  INSTALL        TRUE
+  TEST           TRUE
+  TEST_ARGS      -t UTF-16 -o tconv.tconv-UTF-16.c "${CMAKE_CURRENT_SOURCE_DIR}/src/tconv.c"
+  TARGETS_OUTVAR tconv_targets
+  ENVIRONMENT    ${_test_environment}
 )
 foreach(_target IN LISTS tconv_targets)
   target_compile_definitions(${_target} PRIVATE -DOPTPARSE_IMPLEMENTATION -DOPTPARSE_API=static)
@@ -332,8 +326,6 @@ cmake_helpers_exe(tconvExample
   ENVIRONMENT    ${_test_environment}
 )
 foreach(_target IN LISTS example_targets)
-  target_compile_definitions(${_target} PRIVATE -DOPTPARSE_IMPLEMENTATION -DOPTPARSE_API=static)
-  target_include_directories(${_target} PRIVATE ${optparse_source_dir})
   #
   # Specific to SunOs
   #
