@@ -26,12 +26,10 @@
 cmake_minimum_required(VERSION 3.26.0 FATAL_ERROR)
 project(tconv VERSION 1.0.87 LANGUAGES C CXX)
 #
-# Specific options via environment variables
+# Specific options
 #
-set(TCONV_PREFER_STATIC_DEPENDENCIES $ENV{CMAKE_HELPERS_PREFER_STATIC_DEPENDENCIES})
-set(TCONV_PREFER_OBJECT_INTERFACES   $ENV{CMAKE_HELPERS_PREFER_OBJECT_INTERFACES})
-message(STATUS "Prefer static dependencies: ${TCONV_PREFER_STATIC_DEPENDENCIES}")
-message(STATUS "Prefer object dependencies: ${TCONV_PREFER_OBJECT_INTERFACES}")
+option(PREFER_STATIC_DEPENDENCIES "Prefer static dependencies" OFF)
+message(STATUS "Prefer static dependencies: ${PREFER_STATIC_DEPENDENCIES}")
 #
 # Specific options
 #
@@ -75,15 +73,15 @@ if(TCONV_USE_ICONV)
     SOURCE_DIR_OUTVAR libiconv_source_dir
   )
   #
-  # We always use libiconv static objects regardless of TCONV_PREFER_STATIC_DEPENDENCIES or TCONV_PREFER_OBJECT_INTERFACES
+  # We always use libiconv static objects regardless of PREFER_STATIC_DEPENDENCIES
   #
   list(APPEND libtconv_extra_licenses libiconv ${libiconv_source_dir}/COPYING)
   #
   # This hack of "PUBLIC BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:xx_iface>" followed by "PUBLIC $<LINK_ONLY:xx>" is for having
   # xx compilation usage requirements forwarded to our targets, link with xx objects, without having to depend on xx export set.
   #
-  list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:libiconv_static_objs_iface>)
-  list(APPEND libtconv_depends PRIVATE $<LINK_ONLY:libiconv_static_objs_iface>)
+  list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:libiconv_static>)
+  list(APPEND libtconv_depends PRIVATE $<LINK_ONLY:libiconv_static>)
   set(TCONV_HAVE_ICONV 1)
   set(ICONV_SECOND_ARGUMENT_IS_CONST FALSE)
   set(ICONV_CAN_TRANSLIT TRUE)
@@ -136,11 +134,11 @@ if(WIN32 AND NOT CYGWIN)
     SOURCE_DIR_OUTVAR dlfcn_win32_source_dir
   )
   #
-  # We always use dlfcn_win32 static objects regardless of TCONV_PREFER_STATIC_DEPENDENCIES or TCONV_PREFER_OBJECT_INTERFACES
+  # We always use dlfcn_win32 static objects regardless of PREFER_STATIC_DEPENDENCIES
   #
   list(APPEND libtconv_extra_licenses dlfcn-win32 ${dlfcn_win32_source_dir}/COPYING)
-  list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:dl_static_objs_iface>)
-  list(APPEND libtconv_depends PRIVATE $<LINK_ONLY:dl_static_objs_iface>)
+  list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:dl_static>)
+  list(APPEND libtconv_depends PRIVATE $<LINK_ONLY:dl_static>)
 else()
   if(CMAKE_DL_LIBS)
     list(APPEND libtconv_depends PUBLIC ${CMAKE_DL_LIBS})
@@ -152,42 +150,15 @@ endif()
 # Generic logger: private dependency
 #
 set(genericLogger_git https://github.com/jddurand/c-genericLogger.git)
-if(TCONV_PREFER_OBJECT_INTERFACES)
-  cmake_helpers_depend(genericLogger
-    EXTERNALPROJECT_ADD_ARGS
-      GIT_REPOSITORY ${genericLogger_git}
-      GIT_SHALLOW TRUE
-    FIND FALSE
-    CONFIGURE FALSE
-    BUILD FALSE
-    INSTALL FALSE
-    MAKEAVAILABLE TRUE
-    EXCLUDE_FROM_ALL TRUE
-    SOURCE_DIR_OUTVAR genericLogger_source_dir
-  )
-  list(APPEND tconv_extra_licenses genericLogger ${genericLogger_source_dir}/LICENSE)
-  if(TCONV_PREFER_STATIC_DEPENDENCIES)
-    list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:genericLogger_static_objs_iface>)
-    list(APPEND libtconv_depends PRIVATE $<LINK_ONLY:genericLogger_static_objs_iface>)
-  else()
-    list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:genericLogger_objs_iface>)
-    list(APPEND libtconv_depends PRIVATE $<LINK_ONLY:genericLogger_objs_iface>)
-  endif()
+cmake_helpers_depend(genericLogger
+  EXTERNALPROJECT_ADD_ARGS GIT_REPOSITORY ${genericLogger_git} GIT_SHALLOW TRUE
+  FIND_PACKAGE_ARGS REQUIRED CONFIG
+)
+list(APPEND libtconv_find_dependencies "genericLogger REQUIRED CONFIG")
+if(PREFER_STATIC_DEPENDENCIES)
+  list(APPEND libtconv_depends PRIVATE genericLogger::genericLogger_static)
 else()
-  cmake_helpers_depend(genericLogger
-    EXTERNALPROJECT_ADD_ARGS
-      GIT_REPOSITORY ${genericLogger_git}
-      GIT_SHALLOW TRUE
-    FIND_PACKAGE_ARGS
-      REQUIRED
-      CONFIG
-    )
-  list(APPEND libtconv_find_dependencies "genericLogger REQUIRED CONFIG")
-  if(TCONV_PREFER_STATIC_DEPENDENCIES)
-    list(APPEND libtconv_depends PRIVATE genericLogger::genericLogger_static)
-  else()
-    list(APPEND libtconv_depends PRIVATE genericLogger::genericLogger)
-  endif()
+  list(APPEND libtconv_depends PRIVATE genericLogger::genericLogger)
 endif()
 #
 # cchardet sources: embedded using source files
@@ -288,20 +259,10 @@ cmake_helpers_pod(INPUT ${CMAKE_CURRENT_SOURCE_DIR}/include/tconv/README.pod NAM
 #
 set(tconv_depends_ext)
 set(tconv_depends)
-if(TCONV_PREFER_OBJECT_INTERFACES)
-  if(TCONV_PREFER_STATIC_DEPENDENCIES)
-    list(APPEND tconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:genericLogger_static_objs_iface>)
-    list(APPEND tconv_depends PRIVATE $<LINK_ONLY:genericLogger_static_objs_iface>)
-  else()
-    list(APPEND tconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:genericLogger_objs_iface>)
-    list(APPEND tconv_depends PRIVATE $<LINK_ONLY:genericLogger_objs_iface>)
-  endif()
+if(PREFER_STATIC_DEPENDENCIES)
+  list(APPEND tconv_depends PRIVATE genericLogger::genericLogger_static)
 else()
-  if(TCONV_PREFER_STATIC_DEPENDENCIES)
-    list(APPEND tconv_depends PRIVATE genericLogger::genericLogger_static)
-  else()
-    list(APPEND tconv_depends PRIVATE genericLogger::genericLogger)
-  endif()
+  list(APPEND tconv_depends PRIVATE genericLogger::genericLogger)
 endif()
 cmake_helpers_exe(tconv
   SOURCES        bin/tconv.c
