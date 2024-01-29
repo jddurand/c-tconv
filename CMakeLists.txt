@@ -204,9 +204,17 @@ set(ccharset_inc
   ${cchardet_workdir}/src/ext/libcharsetdetect/nspr-emu
   ${cchardet_workdir}/src/ext/libcharsetdetect
 )
-add_library(cchardet_objs OBJECT ${ccharset_src})
-target_include_directories(cchardet_objs PRIVATE ${ccharset_inc})
-list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE cchardet_objs)
+cmake_helpers_library(ccharset
+  SOURCES            ${ccharset_src}
+  TYPE_AUTO          FALSE
+  TYPE_OBJECT        TRUE
+  PODS_AUTO          FALSE
+  TARGET_NAME_OBJECT ccharset_objs
+  TARGETS_OUTVAR     ccharset_targets
+  INTERNAL           TRUE
+)
+target_include_directories(ccharset_objs PRIVATE ${ccharset_inc})
+list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE ccharset_objs)
 #
 # optparse: embedded using source files
 #
