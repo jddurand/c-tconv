@@ -91,7 +91,7 @@ if(TCONV_USE_ICONV)
   list(APPEND libtconv_src src/tconv/convert/tconv_convert_iconv.c)
 endif()
 #
-# ICU
+# ICU : library dependency
 #
 if(TCONV_USE_ICU)
   find_package(ICU COMPONENTS uc i18n)
@@ -99,8 +99,10 @@ if(TCONV_USE_ICU)
     set(TCONV_HAVE_ICU 1)
     list(APPEND libtconv_src src/tconv/charset/tconv_charset_ICU.c src/tconv/convert/tconv_convert_ICU.c)
     list(APPEND libtconv_find_dependencies "ICU REQUIRED COMPONENTS uc i18n")
-    list(APPEND libtconv_depends INTERFACE ICU::uc)
-    list(APPEND libtconv_depends INTERFACE ICU::i18n)
+    list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE ICU::uc)
+    list(APPEND libtconv_depends_ext PUBLIC LINK_ONLY ICU::uc)
+    list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE ICU::i18n)
+    list(APPEND libtconv_depends_ext PUBLIC LINK_ONLY ICU::i18n)
   else()
     message(WARNING "Option USE_ICU is ON but ICU is not found")
   endif()
@@ -150,7 +152,7 @@ else()
   endif()
 endif()
 #
-# Generic logger: private dependency
+# Generic logger: library dependency
 #
 set(genericLogger_git https://github.com/jddurand/c-genericLogger.git)
 cmake_helpers_depend(genericLogger
@@ -159,9 +161,11 @@ cmake_helpers_depend(genericLogger
 )
 list(APPEND libtconv_find_dependencies "genericLogger REQUIRED CONFIG")
 if(PREFER_STATIC_DEPENDENCIES)
-  list(APPEND libtconv_depends PRIVATE genericLogger::genericLogger_static)
+  list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE genericLogger::genericLogger_static)
+  list(APPEND libtconv_depends_ext PUBLIC LINK_ONLY genericLogger::genericLogger_static)
 else()
-  list(APPEND libtconv_depends PRIVATE genericLogger::genericLogger)
+  list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE genericLogger::genericLogger)
+  list(APPEND libtconv_depends_ext PUBLIC LINK_ONLY genericLogger::genericLogger)
 endif()
 #
 # cchardet sources: embedded using source files
