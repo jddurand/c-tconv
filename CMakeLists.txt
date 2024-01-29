@@ -199,12 +199,14 @@ file(GLOB ccharset_src
   ${cchardet_workdir}/src/ext/libcharsetdetect/mozilla/extensions/universalchardet/src/base/*.cpp
   ${cchardet_workdir}/src/ext/libcharsetdetect/charsetdetect.cpp
 )
-list(APPEND libtconv_src ${ccharset_src})
 set(ccharset_inc
   ${cchardet_workdir}/src/ext/libcharsetdetect/mozilla/extensions/universalchardet/src/base
   ${cchardet_workdir}/src/ext/libcharsetdetect/nspr-emu
   ${cchardet_workdir}/src/ext/libcharsetdetect
 )
+add_library(cchardet_objs OBJECT ${ccharset_src})
+target_include_directories(cchardet_objs PRIVATE ${ccharset_inc})
+list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE cchardet_objs)
 #
 # optparse: embedded using source files
 #
