@@ -80,8 +80,10 @@ if(TCONV_USE_ICONV)
   # This hack of "PUBLIC BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:xx_iface>" followed by "PUBLIC $<LINK_ONLY:xx>" is for having
   # xx compilation usage requirements forwarded to our targets, link with xx objects, without having to depend on xx export set.
   #
-  list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:libiconv_static>)
-  list(APPEND libtconv_depends PRIVATE $<LINK_ONLY:libiconv_static>)
+  add_library(libiconv_static_iface INTERFACE)
+  target_link_libraries(libiconv_static_iface INTERFACE libiconv_static $<TARGET_OBJECTS:libiconv_static>)
+  list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:libiconv_static_iface>)
+  list(APPEND libtconv_depends PRIVATE $<LINK_ONLY:libiconv_static_iface>)
   set(TCONV_HAVE_ICONV 1)
   set(ICONV_SECOND_ARGUMENT_IS_CONST FALSE)
   set(ICONV_CAN_TRANSLIT TRUE)
@@ -136,9 +138,10 @@ if(WIN32 AND NOT CYGWIN)
   #
   # We always use dlfcn_win32 static objects regardless of PREFER_STATIC_DEPENDENCIES
   #
-  list(APPEND libtconv_extra_licenses dlfcn-win32 ${dlfcn_win32_source_dir}/COPYING)
-  list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:dl_static>)
-  list(APPEND libtconv_depends PRIVATE $<LINK_ONLY:dl_static>)
+  add_library(dl_static_iface INTERFACE)
+  target_link_libraries(dl_static_iface INTERFACE dl_static $<TARGET_OBJECTS:dl_static>)
+  list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:dl_static_iface>)
+  list(APPEND libtconv_depends PRIVATE $<LINK_ONLY:dl_static_iface>)
 else()
   if(CMAKE_DL_LIBS)
     list(APPEND libtconv_depends PUBLIC ${CMAKE_DL_LIBS})
