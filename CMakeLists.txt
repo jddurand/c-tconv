@@ -49,7 +49,7 @@ set(libtconv_depends_ext)
 set(libtconv_find_dependencies)
 set(libtconv_extra_licenses)
 #
-# iconv: We always want to embed libiconv in tconv
+# iconv: library dependency
 #
 set(libtconv_src src/tconv.c src/tconv/charset/tconv_charset_cchardet.c)
 if(TCONV_USE_ICONV)
@@ -65,10 +65,14 @@ if(TCONV_USE_ICONV)
     CMAKE_ARGS -DICONV_VERSION=${libiconv_version}
     FIND_PACKAGE_ARGS REQUIRED CONFIG
   )
-  #
-  # We always use libiconv static objects regardless of PREFER_STATIC_DEPENDENCIES
-  #
-  list(APPEND libtconv_depends PUBLIC libiconv::libiconv_static)
+  list(APPEND libtconv_find_dependencies "libiconv REQUIRED CONFIG")
+  if(PREFER_STATIC_DEPENDENCIES)
+    list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE libiconv::libiconv_static)
+    list(APPEND libtconv_depends_ext PUBLIC LINK_ONLY libiconv::libiconv_static)
+  else()
+    list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE libiconv::libiconv)
+    list(APPEND libtconv_depends_ext PUBLIC LINK_ONLY libiconv::libiconv)
+  endif()
   #
   # Declare we support iconv
   #
