@@ -63,27 +63,15 @@ if(TCONV_USE_ICONV)
       PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/cmake/iconv/CMakeLists.txt .
             COMMAND ${CMAKE_COMMAND} -E rm include/export.h # This file has nothing to do here -;
     CMAKE_ARGS -DICONV_VERSION=${libiconv_version}
-    FIND FALSE
-    CONFIGURE FALSE
-    BUILD FALSE
-    INSTALL FALSE
-    MAKEAVAILABLE TRUE
-    EXCLUDE_FROM_ALL TRUE
-    EXPORT_HEADER_STATIC_DEFINE libiconv_STATIC # This is the default but we set it to be sure we control it
-    SOURCE_DIR_OUTVAR libiconv_source_dir
+    FIND_PACKAGE_ARGS REQUIRED CONFIG
   )
   #
   # We always use libiconv static objects regardless of PREFER_STATIC_DEPENDENCIES
   #
-  list(APPEND libtconv_extra_licenses libiconv ${libiconv_source_dir}/COPYING)
+  list(APPEND libtconv_depends PUBLIC libiconv::libiconv_static)
   #
-  # This hack of "PUBLIC BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:xx_iface>" followed by "PUBLIC $<LINK_ONLY:xx>" is for having
-  # xx compilation usage requirements forwarded to our targets, link with xx objects, without having to depend on xx export set.
+  # Declare we support iconv
   #
-  add_library(libiconv_static_iface INTERFACE)
-  target_link_libraries(libiconv_static_iface INTERFACE libiconv_static $<TARGET_OBJECTS:libiconv_static>)
-  list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:libiconv_static_iface>)
-  list(APPEND libtconv_depends PRIVATE $<LINK_ONLY:libiconv_static_iface>)
   set(TCONV_HAVE_ICONV 1)
   set(ICONV_SECOND_ARGUMENT_IS_CONST FALSE)
   set(ICONV_CAN_TRANSLIT TRUE)
