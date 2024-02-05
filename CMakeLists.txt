@@ -133,8 +133,8 @@ if(WIN32 AND NOT CYGWIN)
     EXCLUDE_FROM_ALL TRUE
     SOURCE_DIR_OUTVAR dlfcn_win32_source_dir
   )
-  list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE dlfcn_win32::dl_static)
-  list(APPEND libtconv_depends_ext PUBLIC LINK_ONLY dlfcn_win32::dl_static)
+  list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE dl_static)
+  list(APPEND libtconv_depends_ext PUBLIC LINK_ONLY dl_static)
 else()
   if(CMAKE_DL_LIBS)
     list(APPEND libtconv_depends PUBLIC ${CMAKE_DL_LIBS})
