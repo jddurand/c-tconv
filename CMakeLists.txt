@@ -133,13 +133,8 @@ if(WIN32 AND NOT CYGWIN)
     EXCLUDE_FROM_ALL TRUE
     SOURCE_DIR_OUTVAR dlfcn_win32_source_dir
   )
-  #
-  # We always use dlfcn_win32 static objects regardless of PREFER_STATIC_DEPENDENCIES
-  #
-  add_library(dl_static_iface INTERFACE)
-  target_link_libraries(dl_static_iface INTERFACE dl_static $<TARGET_OBJECTS:dl_static>)
-  list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE $<COMPILE_ONLY:dl_static_iface>)
-  list(APPEND libtconv_depends PUBLIC $<LINK_ONLY:dl_static_iface>)
+  list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE dlfcn_win32::dl_static)
+  list(APPEND libtconv_depends_ext PUBLIC LINK_ONLY dlfcn_win32::dl_static)
 else()
   if(CMAKE_DL_LIBS)
     list(APPEND libtconv_depends PUBLIC ${CMAKE_DL_LIBS})
