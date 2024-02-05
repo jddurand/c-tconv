@@ -67,7 +67,7 @@ if(TCONV_USE_ICONV)
       PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/cmake/iconv/CMakeLists.txt .
             COMMAND ${CMAKE_COMMAND} -E rm include/export.h # This file has nothing to do here -;
     CMAKE_ARGS -DICONV_VERSION=${libiconv_version}
-    FIND_PACKAGE_ARGS REQUIRED CONFIG
+    FIND FALSE
   )
   list(APPEND libtconv_find_dependencies "libiconv REQUIRED CONFIG")
   if(PREFER_STATIC_DEPENDENCIES)
