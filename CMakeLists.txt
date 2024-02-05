@@ -113,7 +113,7 @@ if(WIN32 AND TCONV_HAVE_ICU AND ICU_UCONV_EXECUTABLE)
   list(APPEND _test_environment ${_parent_path})
 endif()
 #
-# Portable dlopen for Win32: we always want to embed dl in tconv
+# Portable dlopen for Win32: library dependency
 #
 if(WIN32 AND NOT CYGWIN)
   set(dlfcn_win32_version 1.4.1)
@@ -125,13 +125,7 @@ if(WIN32 AND NOT CYGWIN)
       URL ${dlfcn_win32_file}
       PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/cmake/dlfcn-win32/CMakeLists.txt .
     CMAKE_ARGS -DDLFCN_WIN32_VERSION=${dlfcn_win32_version}
-    FIND FALSE
-    CONFIGURE FALSE
-    BUILD FALSE
-    INSTALL FALSE
-    MAKEAVAILABLE TRUE
-    EXCLUDE_FROM_ALL TRUE
-    SOURCE_DIR_OUTVAR dlfcn_win32_source_dir
+    FIND_PACKAGE_ARGS REQUIRED CONFIG
   )
   list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE dl_static)
   list(APPEND libtconv_depends_ext PUBLIC LINK_ONLY dl_static)
