@@ -125,10 +125,16 @@ if(WIN32 AND NOT CYGWIN)
       URL ${dlfcn_win32_file}
       PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/cmake/dlfcn-win32/CMakeLists.txt .
     CMAKE_ARGS -DDLFCN_WIN32_VERSION=${dlfcn_win32_version}
-    FIND_PACKAGE_ARGS REQUIRED CONFIG
+    FIND FALSE
   )
-  list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE dl_static)
-  list(APPEND libtconv_depends_ext PUBLIC LINK_ONLY dl_static)
+  list(APPEND libtconv_find_dependencies "dlfcn_win32 REQUIRED CONFIG")
+  if(PREFER_STATIC_DEPENDENCIES)
+    list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE dlfcn_win32::dl_static)
+    list(APPEND libtconv_depends_ext PUBLIC LINK_ONLY dlfcn_win32::dl_static)
+  else()
+    list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE dlfcn_win32::dl)
+    list(APPEND libtconv_depends_ext PUBLIC LINK_ONLY dlfcn_win32::dl)
+  endif()
 else()
   if(CMAKE_DL_LIBS)
     list(APPEND libtconv_depends PUBLIC ${CMAKE_DL_LIBS})
