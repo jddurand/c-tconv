@@ -53,7 +53,7 @@ set(libtconv_depends_ext)
 set(libtconv_find_dependencies)
 set(libtconv_extra_licenses)
 #
-# iconv: library dependency
+# iconv: private library dependency
 #
 set(libtconv_src src/tconv.c src/tconv/charset/tconv_charset_cchardet.c)
 if(TCONV_USE_ICONV)
@@ -71,11 +71,9 @@ if(TCONV_USE_ICONV)
   )
   list(APPEND libtconv_find_dependencies "libiconv REQUIRED CONFIG")
   if(PREFER_STATIC_DEPENDENCIES)
-    list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE libiconv::libiconv_static)
-    list(APPEND libtconv_depends_ext PUBLIC LINK_ONLY libiconv::libiconv_static)
+    list(APPEND libtconv_depends PRIVATE libiconv::libiconv_static)
   else()
-    list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE libiconv::libiconv)
-    list(APPEND libtconv_depends_ext PUBLIC LINK_ONLY libiconv::libiconv)
+    list(APPEND libtconv_depends PRIVATE libiconv::libiconv)
   endif()
   #
   # Declare we support iconv
@@ -87,7 +85,7 @@ if(TCONV_USE_ICONV)
   list(APPEND libtconv_src src/tconv/convert/tconv_convert_iconv.c)
 endif()
 #
-# ICU : library dependency
+# ICU : private library dependency
 #
 if(TCONV_USE_ICU)
   find_package(ICU COMPONENTS uc i18n)
@@ -95,10 +93,8 @@ if(TCONV_USE_ICU)
     set(TCONV_HAVE_ICU 1)
     list(APPEND libtconv_src src/tconv/charset/tconv_charset_ICU.c src/tconv/convert/tconv_convert_ICU.c)
     list(APPEND libtconv_find_dependencies "ICU REQUIRED COMPONENTS uc i18n")
-    list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE ICU::uc)
-    list(APPEND libtconv_depends_ext PUBLIC LINK_ONLY ICU::uc)
-    list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE ICU::i18n)
-    list(APPEND libtconv_depends_ext PUBLIC LINK_ONLY ICU::i18n)
+    list(APPEND libtconv_depends PRIVATE ICU::uc)
+    list(APPEND libtconv_depends PRIVATE ICU::i18n)
   else()
     message(WARNING "Option USE_ICU is ON but ICU is not found")
   endif()
@@ -113,7 +109,7 @@ if(WIN32 AND TCONV_HAVE_ICU AND ICU_UCONV_EXECUTABLE)
   list(APPEND _test_environment ${_parent_path})
 endif()
 #
-# Portable dlopen for Win32: library dependency
+# Portable dlopen for Win32: private library dependency
 #
 if(WIN32 AND NOT CYGWIN)
   set(dlfcn_win32_version 1.4.1)
@@ -129,11 +125,9 @@ if(WIN32 AND NOT CYGWIN)
   )
   list(APPEND libtconv_find_dependencies "dlfcn_win32 REQUIRED CONFIG")
   if(PREFER_STATIC_DEPENDENCIES)
-    list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE dlfcn_win32::dl_static)
-    list(APPEND libtconv_depends_ext PUBLIC LINK_ONLY dlfcn_win32::dl_static)
+    list(APPEND libtconv_depends PRIVATE dlfcn_win32::dl_static)
   else()
-    list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE dlfcn_win32::dl)
-    list(APPEND libtconv_depends_ext PUBLIC LINK_ONLY dlfcn_win32::dl)
+    list(APPEND libtconv_depends PRIVATE dlfcn_win32::dl)
   endif()
 else()
   if(CMAKE_DL_LIBS)
@@ -143,7 +137,7 @@ else()
   endif()
 endif()
 #
-# Generic logger: library dependency
+# Generic logger: private library dependency
 #
 set(genericLogger_git https://github.com/jddurand/c-genericLogger.git)
 cmake_helpers_depend(genericLogger
@@ -152,11 +146,9 @@ cmake_helpers_depend(genericLogger
 )
 list(APPEND libtconv_find_dependencies "genericLogger REQUIRED CONFIG")
 if(PREFER_STATIC_DEPENDENCIES)
-  list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE genericLogger::genericLogger_static)
-  list(APPEND libtconv_depends_ext PUBLIC LINK_ONLY genericLogger::genericLogger_static)
+  list(APPEND libtconv_depends PRIVATE genericLogger::genericLogger_static)
 else()
-  list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE genericLogger::genericLogger)
-  list(APPEND libtconv_depends_ext PUBLIC LINK_ONLY genericLogger::genericLogger)
+  list(APPEND libtconv_depends PRIVATE genericLogger::genericLogger)
 endif()
 #
 # cchardet sources: embedded using source files
