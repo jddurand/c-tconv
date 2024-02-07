@@ -53,7 +53,7 @@ set(libtconv_depends_ext)
 set(libtconv_find_dependencies)
 set(libtconv_extra_licenses)
 #
-# iconv: private library dependency
+# iconv: embedded static objects
 #
 set(libtconv_src src/tconv.c src/tconv/charset/tconv_charset_cchardet.c)
 if(TCONV_USE_ICONV)
@@ -68,13 +68,15 @@ if(TCONV_USE_ICONV)
             COMMAND ${CMAKE_COMMAND} -E rm include/export.h # This file has nothing to do here -;
     CMAKE_ARGS -DICONV_VERSION=${libiconv_version}
     FIND FALSE
+    CONFIGURE FALSE
+    BUILD FALSE
+    INSTALL FALSE
+    MAKEAVAILABLE TRUE
+    EXCLUDE_FROM_ALL TRUE
+    SOURCE_DIR_OUTVAR libiconv_source_dir
   )
-  list(APPEND libtconv_find_dependencies "libiconv REQUIRED CONFIG")
-  if(PREFER_STATIC_DEPENDENCIES)
-    list(APPEND libtconv_depends PRIVATE libiconv::libiconv_static)
-  else()
-    list(APPEND libtconv_depends PRIVATE libiconv::libiconv)
-  endif()
+  list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE iface_objs_libiconv_static)
+  list(APPEND libtconv_extra_licenses libiconv ${libiconv_source_dir}/COPYING.LIB)
   #
   # Declare we support iconv
   #
@@ -109,7 +111,7 @@ if(WIN32 AND TCONV_HAVE_ICU AND ICU_UCONV_EXECUTABLE)
   list(APPEND _test_environment ${_parent_path})
 endif()
 #
-# Portable dlopen for Win32: private library dependency
+# Portable dlopen for Win32: embedded static objects
 #
 if(WIN32 AND NOT CYGWIN)
   set(dlfcn_win32_version 1.4.1)
@@ -122,16 +124,18 @@ if(WIN32 AND NOT CYGWIN)
       PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/cmake/dlfcn-win32/CMakeLists.txt .
     CMAKE_ARGS -DDLFCN_WIN32_VERSION=${dlfcn_win32_version}
     FIND FALSE
+    CONFIGURE FALSE
+    BUILD FALSE
+    INSTALL FALSE
+    MAKEAVAILABLE TRUE
+    EXCLUDE_FROM_ALL TRUE
+    SOURCE_DIR_OUTVAR dlfcn_win32_source_dir
   )
-  list(APPEND libtconv_find_dependencies "dlfcn_win32 REQUIRED CONFIG")
-  if(PREFER_STATIC_DEPENDENCIES)
-    list(APPEND libtconv_depends PRIVATE dlfcn_win32::dl_static)
-  else()
-    list(APPEND libtconv_depends PRIVATE dlfcn_win32::dl)
-  endif()
+  list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE iface_objs_dl_static)
+  list(APPEND libtconv_extra_licenses dlfcn-win32 ${dlfcn_win32_source_dir}/COPYING)
 else()
   if(CMAKE_DL_LIBS)
-    list(APPEND libtconv_depends PUBLIC ${CMAKE_DL_LIBS})
+    list(APPEND libtconv_depends PRIVATE ${CMAKE_DL_LIBS})
   else()
     message(WARNING "No library containing dlopen/dlclose")
   endif()
