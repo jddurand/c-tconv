@@ -75,7 +75,11 @@ if(TCONV_USE_ICONV)
     EXCLUDE_FROM_ALL TRUE
     SOURCE_DIR_OUTVAR libiconv_source_dir
   )
-  list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE iface_objs_libiconv_static)
+  #
+  # To get static objects we have to do it like that because of transitivity for static libraries
+  #
+  list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE objs_libiconv_static)
+  list(APPEND libtconv_depends_ext PRIVATE LINK_ONLY $<TARGET_OBJECTS:objs_libiconv_static>)
   list(APPEND libtconv_extra_licenses libiconv ${libiconv_source_dir}/COPYING.LIB)
   #
   # Declare we support iconv
@@ -87,7 +91,7 @@ if(TCONV_USE_ICONV)
   list(APPEND libtconv_src src/tconv/convert/tconv_convert_iconv.c)
 endif()
 #
-# ICU : private library dependency
+# ICU : public library dependency
 #
 if(TCONV_USE_ICU)
   find_package(ICU COMPONENTS uc i18n)
@@ -131,7 +135,8 @@ if(WIN32 AND NOT CYGWIN)
     EXCLUDE_FROM_ALL TRUE
     SOURCE_DIR_OUTVAR dlfcn_win32_source_dir
   )
-  list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE iface_objs_dl_static)
+  list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE objs_dl_static)
+  list(APPEND libtconv_depends_ext PRIVATE LINK_ONLY $<TARGET_OBJECTS:objs_dl_static>)
   list(APPEND libtconv_extra_licenses dlfcn-win32 ${dlfcn_win32_source_dir}/COPYING)
 else()
   if(CMAKE_DL_LIBS)
