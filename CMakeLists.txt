@@ -76,10 +76,9 @@ if(TCONV_USE_ICONV)
     SOURCE_DIR_OUTVAR libiconv_source_dir
   )
   #
-  # To get static objects we have to do it like that because of transitivity for static libraries
+  # This will include libiconv_static static objects in our library (not their transitive dependencies though)
   #
   list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE objs_libiconv_static)
-  list(APPEND libtconv_depends_ext PRIVATE LINK_ONLY $<TARGET_OBJECTS:objs_libiconv_static>)
   list(APPEND libtconv_extra_licenses libiconv ${libiconv_source_dir}/COPYING.LIB)
   #
   # Declare we support iconv
@@ -91,7 +90,7 @@ if(TCONV_USE_ICONV)
   list(APPEND libtconv_src src/tconv/convert/tconv_convert_iconv.c)
 endif()
 #
-# ICU : public library dependency
+# ICU : public dependency
 #
 if(TCONV_USE_ICU)
   find_package(ICU COMPONENTS uc i18n)
@@ -135,8 +134,10 @@ if(WIN32 AND NOT CYGWIN)
     EXCLUDE_FROM_ALL TRUE
     SOURCE_DIR_OUTVAR dlfcn_win32_source_dir
   )
+  #
+  # This will include dl_static static objects in our library (not their transitive dependencies though)
+  #
   list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE objs_dl_static)
-  list(APPEND libtconv_depends_ext PRIVATE LINK_ONLY $<TARGET_OBJECTS:objs_dl_static>)
   list(APPEND libtconv_extra_licenses dlfcn-win32 ${dlfcn_win32_source_dir}/COPYING)
 else()
   if(CMAKE_DL_LIBS)
@@ -146,7 +147,7 @@ else()
   endif()
 endif()
 #
-# Generic logger: private library dependency
+# Generic logger: public dependency
 #
 set(genericLogger_git https://github.com/jddurand/c-genericLogger.git)
 cmake_helpers_depend(genericLogger
