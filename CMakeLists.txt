@@ -78,7 +78,7 @@ if(TCONV_USE_ICONV)
   #
   # This will include libiconv_static static objects in our library (not their transitive dependencies though)
   #
-  list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE objs_libiconv_static)
+  list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE objs_libiconv_static)
   list(APPEND libtconv_extra_licenses libiconv ${libiconv_source_dir}/COPYING.LIB)
   #
   # Declare we support iconv
@@ -137,7 +137,7 @@ if(WIN32 AND NOT CYGWIN)
   #
   # This will include dl_static static objects in our library (not their transitive dependencies though)
   #
-  list(APPEND libtconv_depends_ext PUBLIC BUILD_LOCAL_INTERFACE objs_dl_static)
+  list(APPEND libtconv_depends_ext PRIVATE BUILD_LOCAL_INTERFACE objs_dl_static)
   list(APPEND libtconv_extra_licenses dlfcn-win32 ${dlfcn_win32_source_dir}/COPYING)
 else()
   if(CMAKE_DL_LIBS)
@@ -147,7 +147,7 @@ else()
   endif()
 endif()
 #
-# Generic logger: public dependency
+# Generic logger: private dependency
 #
 set(genericLogger_git https://github.com/jddurand/c-genericLogger.git)
 cmake_helpers_depend(genericLogger
@@ -156,9 +156,9 @@ cmake_helpers_depend(genericLogger
 )
 list(APPEND libtconv_find_dependencies "genericLogger REQUIRED CONFIG")
 if(PREFER_STATIC_DEPENDENCIES)
-  list(APPEND libtconv_depends PUBLIC genericLogger::genericLogger_static)
+  list(APPEND libtconv_depends PRIVATE genericLogger::genericLogger_static)
 else()
-  list(APPEND libtconv_depends PUBLIC genericLogger::genericLogger)
+  list(APPEND libtconv_depends PRIVATE genericLogger::genericLogger)
 endif()
 #
 # cchardet sources: embedded using source files
