@@ -94,13 +94,13 @@ endif()
 # #ifdef/#ifndef NO_I18N
 #
 if(WITHOUT_I18N)
-  set(NO_I18N 1)
+  set(NO_I18N TRUE)
 else()
   include(FindIntl)
   if(NOT Intl_FOUND)
-    set(NO_I18N 1)
+    set(NO_I18N TRUE)
   else()
-    set(NO_I18N 0)
+    set(NO_I18N FALSE)
     if(Intl_LIBRARY)
       list(APPEND libiconv_depends PUBLIC ${Intl_LIBRARY})
     endif()
@@ -312,8 +312,16 @@ endif()
 cmake_helpers_library(libiconv
   SOURCES libcharset/lib/localcharset.c lib/relocatable.c lib/iconv.c
   DEPENDS ${libiconv_depends}
-
+  TARGETS_OUTVAR libiconv_targets
 )
+#
+# Set private definitions, eventually
+#
+if(NO_I18N)
+  foreach(libiconv_target IN LISTS libiconv_targets)
+    target_compile_definitions(${libiconv_target} PRIVATE -DNO_I18N)
+  endforeach()
+endif()
 #
 # Package
 #
