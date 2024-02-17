@@ -44,6 +44,10 @@ else()
 endif()
 FetchContent_MakeAvailable(cmake-helpers)
 #
+# Dependencies
+#
+set(libiconv_depends)
+#
 # ========
 # config.h
 # ========
@@ -97,6 +101,9 @@ else()
     set(NO_I18N 1)
   else()
     set(NO_I18N 0)
+    if(Intl_LIBRARY)
+      list(APPEND libiconv_depends PUBLIC ${Intl_LIBRARY})
+    endif()
   endif()
 endif()
 #
@@ -302,7 +309,11 @@ endif()
 #
 # Create library
 #
-cmake_helpers_library(libiconv SOURCES libcharset/lib/localcharset.c lib/relocatable.c lib/iconv.c)
+cmake_helpers_library(libiconv
+  SOURCES libcharset/lib/localcharset.c lib/relocatable.c lib/iconv.c
+  DEPENDS ${libiconv_depends}
+
+)
 #
 # Package
 #
