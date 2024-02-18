@@ -229,7 +229,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/include/internal)
 # =======
 #
 # iconv.h.build.in contains unfortunately a bloc that would be hard to remove with a true patch.
-# iconv.h.in is almost perfect: we just replace extern by extern [letter] by extern libiconv_EXPORT [a-ZA-Z_]
+# iconv.h.in is almost perfect: we just replace extern [a-ZA-Z_] by extern libiconv_EXPORT [a-ZA-Z_]
 #
 # In this file we replace:
 #

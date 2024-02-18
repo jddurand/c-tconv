@@ -115,25 +115,33 @@ if(WIN32 AND TCONV_HAVE_ICU AND ICU_UCONV_EXECUTABLE)
 endif()
 #
 # Portable dlopen for Win32: embedded static objects
+# For packaging purpose (c.f. marpaESLIFPerl's CMakeList.txt) we always
+# fetch this package.
 #
 if(WIN32 AND NOT CYGWIN)
-  set(dlfcn_win32_version 1.4.1)
-  set(dlfcn_win32_file ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/tar/dlfcn-win32-${dlfcn_win32_version}.tar.gz)
-  set(dlfcn_win32_url https://github.com/dlfcn-win32/dlfcn-win32/archive/refs/tags/v${dlfcn_win32_version}.tar.gz)
-  set(DLFCN_WIN32_VERSION ${dlfcn_win32_version}) # For the inner add_subdirectory()
-  cmake_helpers_depend(dlfcn_win32
-    EXTERNALPROJECT_ADD_ARGS
-      URL ${dlfcn_win32_file}
-      PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/cmake/dlfcn-win32/CMakeLists.txt .
-    CMAKE_ARGS -DDLFCN_WIN32_VERSION=${dlfcn_win32_version}
-    FIND FALSE
-    CONFIGURE FALSE
-    BUILD FALSE
-    INSTALL FALSE
-    MAKEAVAILABLE TRUE
-    EXCLUDE_FROM_ALL TRUE
-    SOURCE_DIR_OUTVAR dlfcn_win32_source_dir
-  )
+  set(NEED_DLFCN_WIN32 TRUE)
+else()
+  set(NEED_DLFCN_WIN32 FALSE)
+endif()
+
+set(dlfcn_win32_version 1.4.1)
+set(dlfcn_win32_file ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/tar/dlfcn-win32-${dlfcn_win32_version}.tar.gz)
+set(dlfcn_win32_url https://github.com/dlfcn-win32/dlfcn-win32/archive/refs/tags/v${dlfcn_win32_version}.tar.gz)
+set(DLFCN_WIN32_VERSION ${dlfcn_win32_version}) # For the inner add_subdirectory()
+cmake_helpers_depend(dlfcn_win32
+  EXTERNALPROJECT_ADD_ARGS
+  URL ${dlfcn_win32_file}
+  PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/cmake/dlfcn-win32/CMakeLists.txt .
+  CMAKE_ARGS -DDLFCN_WIN32_VERSION=${dlfcn_win32_version}
+  FIND FALSE
+  CONFIGURE FALSE
+  BUILD FALSE
+  INSTALL FALSE
+  MAKEAVAILABLE ${NEED_DLFCN_WIN32}
+  EXCLUDE_FROM_ALL TRUE
+  SOURCE_DIR_OUTVAR dlfcn_win32_source_dir
+)
+if(NEED_DLFCN_WIN32)
   #
   # This will include dl_static static objects in our library (not their transitive dependencies though)
   #
