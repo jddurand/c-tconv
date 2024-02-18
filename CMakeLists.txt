@@ -24,7 +24,7 @@
 # Local tests done with: cmake -S c-tconv -B c-tconv-build -DCMAKE_HELPERS_DEBUG=OFF -DICU_ROOT=C:\icu4c-74_2-Win64-MSVC2019
 #
 cmake_minimum_required(VERSION 3.26.0 FATAL_ERROR)
-project(tconv VERSION 1.0.89 LANGUAGES C CXX)
+project(tconv VERSION 1.0.90 LANGUAGES C CXX)
 #
 # Specific options
 #
